@@ -38,29 +38,36 @@ class ACInfinityCard extends LitElement {
     if (this.config?.auto_detect) {
       this._autoDetectEntities();
     }
+    
+    // Update time every minute
+    if (!this._timeInterval) {
+      this._timeInterval = setInterval(() => this.requestUpdate(), 60000);
+    }
   }
 
   get hass() {
     return this._hass;
   }
 
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._timeInterval) {
+      clearInterval(this._timeInterval);
+      this._timeInterval = null;
+    }
+  }
+
   _autoDetectEntities() {
     if (!this._hass || !this._hass.states) return;
 
     const entities = Object.keys(this._hass.states);
-    // Filter entities by checking if they come from ac_infinity integration
-    // The integration creates entities with entity_ids that typically contain patterns like:
-    // - Sensor names with "tent", "probe", "built_in", "controller" in entity_id or friendly_name
-    // - Device info with proper attribution
     const acInfinityEntities = entities.filter(entity => {
       const state = this._hass.states[entity];
       if (!state) return false;
       
-      // Check if entity_id or friendly_name contains AC Infinity patterns
       const entityLower = entity.toLowerCase();
       const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
       
-      // Look for AC Infinity specific patterns
       return (
         entityLower.includes('tent_temperature') ||
         entityLower.includes('tent_humidity') ||
@@ -212,16 +219,37 @@ class ACInfinityCard extends LitElement {
   }
 
   _getPortIcon(port, isOn) {
-    // Return different icons based on port status
-    if (!isOn) return '⚫'; // OFF
+    if (!isOn) return '●';
     
     const power = this._getEntityState(port.power);
     const powerNum = parseInt(power);
     
-    if (powerNum === 0 || power === 'off') return '⚫';
-    if (powerNum >= 1 && powerNum <= 3) return '🔵'; // Low power
-    if (powerNum >= 4 && powerNum <= 6) return '🟢'; // Medium power  
-    return '🟢'; // High power / ON
+    if (powerNum === 0 || power === 'off') return '●';
+    if (powerNum >= 1 && powerNum <= 3) return '●';
+    if (powerNum >= 4 && powerNum <= 6) return '●';
+    return '●';
+  }
+
+  _getPortIconColor(port, isOn) {
+    if (!isOn) return '#333';
+    
+    const power = this._getEntityState(port.power);
+    const powerNum = parseInt(power);
+    
+    if (powerNum === 0 || power === 'off') return '#333';
+    if (powerNum >= 1 && powerNum <= 3) return '#4CAF50';  // Green for low
+    if (powerNum >= 4 && powerNum <= 6) return '#4CAF50';  // Green for medium
+    return '#4CAF50';  // Green for high
+  }
+
+  _getCurrentTime() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${minutes} ${ampm}`;
   }
 
   render() {
@@ -254,13 +282,11 @@ class ACInfinityCard extends LitElement {
 
     const probeTemp = this._formatValue(this._getEntityState(controller.probe_temperature));
     const probeHumidity = this._formatValue(this._getEntityState(controller.probe_humidity));
-    const probeVpd = this._formatValue(this._getEntityState(controller.probe_vpd), 2);
+    const probeVpd = this._formatValue(this._getEntityState(controller.probe_vpd), 1);
     
     const controllerTemp = this._formatValue(this._getEntityState(controller.controller_temperature));
     const controllerHumidity = this._formatValue(this._getEntityState(controller.controller_humidity));
-    const controllerVpd = this._formatValue(this._getEntityState(controller.controller_vpd), 1);
     
-    // Ensure we always show 8 ports
     const ports = [];
     for (let i = 1; i <= 8; i++) {
       const existingPort = (controller.ports || []).find(p => p.number === i);
@@ -276,122 +302,179 @@ class ACInfinityCard extends LitElement {
     return html`
       <ha-card>
         <div class="ac-infinity-card">
-          <div class="header">
-            <div class="ai-badge">
-              <div class="ai-icon">AI</div>
-              <span>${this.config.title}</span>
+          <!-- TOP SECTION: Status Icons and Time -->
+          <div class="top-bar">
+            <div class="status-icons-left">
+              <div class="ai-badge">
+                <span class="ai-text">AI</span>
+              </div>
             </div>
-            <div class="status-icons">
-              <span class="wifi-icon">📶</span>
-              <span class="cloud-icon">☁️</span>
-              <span class="time-display">${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()}</span>
+            
+            <div class="status-icons-center">
+              <span class="icon-item">📶</span>
+              <span class="icon-item">☁️</span>
+            </div>
+            
+            <div class="status-icons-right">
+              <span class="current-time">${this._getCurrentTime()}</span>
             </div>
           </div>
           
+          <!-- MAIN DISPLAY AREA -->
           <div class="main-display">
-            <!-- Left Column: USB Port Icon and Ports List -->
-            <div class="left-column">
-              <div class="usb-port-icon">
-                <span class="port-connector">⚡</span>
+            <!-- LEFT COLUMN: Port Controls -->
+            <div class="left-section">
+              <!-- Port Button (top circle button) -->
+              <div class="port-button-container">
+                <button class="port-button" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
+                  <span class="button-icon">○─</span>
+                </button>
+                <span class="button-label">PORT BUTTON</span>
               </div>
               
-              <div class="control-buttons">
-                <div class="control-btn" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
-                  <div class="menu-icon">
-                    <div class="menu-line"></div>
-                    <div class="menu-line"></div>
-                    <div class="menu-line"></div>
+              <!-- Mode Button -->
+              <div class="mode-button-container">
+                <button class="mode-button" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
+                  <div class="hamburger-icon">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                   </div>
-                </div>
-                <div class="control-btn" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
-                  <span class="settings-icon">⚙</span>
-                </div>
+                </button>
+                <span class="button-label">MODE BUTTON</span>
               </div>
               
-              ${this.config.show_ports ? html`
+              <!-- Ports List -->
+              <div class="ports-section">
+                <span class="section-label">PORTS</span>
                 <div class="ports-list">
                   ${ports.map(port => {
                     const state = this._getEntityState(port.state);
                     const power = this._getEntityState(port.power);
                     const isOn = state === 'on' || (power && power !== '0' && power !== 'off' && power !== 'unavailable' && power !== 'unknown');
                     const displayValue = isOn ? this._formatValue(power) : 'OFF';
+                    const iconColor = this._getPortIconColor(port, isOn);
                     
                     return html`
-                      <div class="port-row ${isOn ? 'port-on' : 'port-off'}" 
+                      <div class="port-item ${isOn ? 'active' : ''}" 
                            @click="${() => this._handleEntityClick(port.state || port.power)}">
-                        <span class="port-number">${port.number}</span>
-                        <span class="port-icon">${this._getPortIcon(port, isOn)}</span>
-                        <span class="port-status">${displayValue}</span>
+                        <span class="port-num">${port.number}</span>
+                        <span class="port-icon" style="color: ${iconColor}">●</span>
+                        <span class="port-value">${displayValue}</span>
                       </div>
                     `;
                   })}
                 </div>
-              ` : html``}
-            </div>
-            
-            <!-- Center Column: Main Temperature Display -->
-            <div class="center-column">
-              <div class="main-temp" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
-                <span class="temp-value">${probeTemp}</span><span class="temp-unit">°F</span>
               </div>
               
-              <div class="secondary-values">
-                <div class="value-item" @click="${() => this._handleEntityClick(controller.probe_humidity)}">
-                  <span class="value-number">${probeHumidity}</span>
-                  <span class="value-unit">%</span>
-                </div>
-                <div class="value-item" @click="${() => this._handleEntityClick(controller.probe_vpd)}">
-                  <span class="value-number">${probeVpd}</span>
-                  <span class="value-unit">kPa</span>
-                </div>
+              <!-- Setting Button -->
+              <div class="setting-button-container">
+                <button class="setting-button" @click="${() => this._handleEntityClick(controller.controller_temperature)}">
+                  <span class="settings-icon">⚙</span>
+                </button>
+                <span class="button-label">SETTING BUTTON</span>
               </div>
               
-              <div class="mode-display">
-                <span class="mode-text">AUTO</span>
-                <span class="mode-status">• HIGH TEMP</span>
+              <!-- Probe Temperature -->
+              <div class="probe-temp-label">
+                <span>PROBE TEMPERATURE</span>
               </div>
             </div>
             
-            <!-- Right Column: Controller Sensors -->
-            <div class="right-column">
+            <!-- CENTER COLUMN: Main Temperature Display -->
+            <div class="center-section">
+              <div class="main-temp-display" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
+                <span class="temp-value">${probeTemp}</span>
+                <span class="temp-unit">°<br>F</span>
+              </div>
+              
+              <div class="secondary-readings">
+                <div class="reading-item" @click="${() => this._handleEntityClick(controller.probe_humidity)}">
+                  <span class="reading-value">${probeHumidity}</span>
+                  <span class="reading-unit">%</span>
+                </div>
+                <div class="reading-item" @click="${() => this._handleEntityClick(controller.probe_vpd)}">
+                  <span class="reading-value">${probeVpd}</span>
+                  <span class="reading-unit">kPa</span>
+                </div>
+              </div>
+              
+              <div class="mode-status">
+                <span class="mode-label">AUTO</span>
+                <span class="mode-detail">• HIGH TEMP</span>
+              </div>
+              
+              <div class="controller-mode-label">
+                <span>CONTROLLER MODE</span>
+              </div>
+            </div>
+            
+            <!-- RIGHT COLUMN: Controller Sensors and Controls -->
+            <div class="right-section">
+              <!-- Probe Humidity Label -->
+              <div class="probe-humidity-label">
+                <span>PROBE HUMIDITY</span>
+              </div>
+              
+              <!-- Up/Down Button -->
+              <div class="updown-button-container">
+                <button class="updown-button">
+                  <span>△</span>
+                  <span>▽</span>
+                </button>
+                <span class="button-label">UP/DOWN BUTTON</span>
+              </div>
+              
+              <!-- Controller Temperature -->
               <div class="controller-sensor" @click="${() => this._handleEntityClick(controller.controller_temperature)}">
-                <span class="sensor-icon cloud">☁️</span>
-                <div class="sensor-value">
-                  <span class="value">${controllerTemp}</span>
-                  <span class="unit">°F</span>
+                <span class="sensor-icon">☁️</span>
+                <div class="sensor-reading">
+                  <span class="sensor-value">${controllerTemp}</span>
+                  <span class="sensor-unit">°F</span>
                 </div>
               </div>
               
+              <!-- Controller Humidity -->
               <div class="controller-sensor" @click="${() => this._handleEntityClick(controller.controller_humidity)}">
-                <span class="sensor-icon drops">💧💧</span>
-                <div class="sensor-value">
-                  <span class="value">${controllerHumidity}</span>
-                  <span class="unit">%</span>
+                <span class="sensor-icon">💧</span>
+                <div class="sensor-reading">
+                  <span class="sensor-value">${controllerHumidity}</span>
+                  <span class="sensor-unit">%</span>
                 </div>
               </div>
               
-              <div class="status-text">
-                ON
+              <!-- Current Level Indicator -->
+              <div class="current-level">
+                <span class="level-icon">◆</span>
+                <span class="level-value">6</span>
+                <span class="level-bar">▽</span>
               </div>
+              <span class="section-label">CURRENT LEVEL</span>
               
+              <!-- Countdown Display -->
+              <div class="countdown-display">
+                <span class="countdown-value">450%</span>
+              </div>
+              <span class="section-label">COUNTDOWN</span>
+              
+              <!-- Set To Display -->
               <div class="set-to-display">
                 <span class="set-to-label">SET TO</span>
                 <span class="set-to-value">${controllerTemp}</span>
+                <span class="set-to-unit">°F</span>
               </div>
+              <span class="section-label">USER SETTING</span>
               
-              <div class="arrow-buttons">
-                <div class="arrow-btn up">▲</div>
-                <div class="arrow-btn down">▼</div>
+              <!-- Probe VPD Label -->
+              <div class="probe-vpd-label">
+                <span>PROBE VPD</span>
               </div>
             </div>
           </div>
           
-          <div class="footer">
-            <div class="brand">
-              <span class="brand-divider"></span>
-              <span class="brand-text">AC INFINITY</span>
-              <span class="brand-divider"></span>
-            </div>
+          <!-- BOTTOM BAR: Brand -->
+          <div class="bottom-bar">
+            <span class="brand">AC INFINITY</span>
           </div>
         </div>
       </ha-card>
@@ -412,274 +495,318 @@ class ACInfinityCard extends LitElement {
       }
       
       .ac-infinity-card {
-        background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
-        position: relative;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(135deg, #2c3e50 0%, #1a252f 50%, #0d1419 100%);
         color: #fff;
+        font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        min-width: 900px;
+        max-width: 1400px;
+        margin: 0 auto;
       }
       
-      /* Header */
-      .header {
-        display: flex;
-        justify-content: space-between;
+      /* TOP BAR */
+      .top-bar {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
         align-items: center;
-        padding: 12px 20px;
-        border-bottom: 1px solid #2a2a2a;
+        padding: 16px 32px;
+        background: rgba(0,0,0,0.2);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+      }
+      
+      .status-icons-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
       
       .ai-badge {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      
-      .ai-icon {
         border: 2px solid #fff;
-        border-radius: 3px;
-        padding: 2px 6px;
-        font-size: 11px;
-        font-weight: bold;
-        line-height: 1;
-      }
-      
-      .status-icons {
-        display: flex;
+        border-radius: 4px;
+        padding: 4px 8px;
+        display: inline-flex;
         align-items: center;
-        gap: 12px;
+        justify-content: center;
+      }
+      
+      .ai-text {
         font-size: 14px;
+        font-weight: bold;
+        letter-spacing: 1px;
       }
       
-      .wifi-icon, .cloud-icon {
-        opacity: 0.7;
+      .status-icons-center {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        justify-content: center;
       }
       
-      .time-display {
-        font-size: 14px;
-        font-weight: 300;
-        letter-spacing: 0.5px;
-        margin-left: 4px;
+      .icon-item {
+        font-size: 16px;
+        opacity: 0.8;
       }
       
-      /* Main Display Grid */
+      .status-icons-right {
+        display: flex;
+        justify-content: flex-end;
+      }
+      
+      .current-time {
+        font-size: 18px;
+        font-weight: 400;
+        letter-spacing: 1px;
+        font-family: 'Courier New', monospace;
+      }
+      
+      /* MAIN DISPLAY */
       .main-display {
         display: grid;
-        grid-template-columns: 140px 1fr 180px;
-        gap: 0;
-        padding: 20px 16px;
-        min-height: 320px;
+        grid-template-columns: 220px 1fr 320px;
+        gap: 48px;
+        padding: 40px 32px;
+        min-height: 450px;
         align-items: start;
       }
       
-      /* Left Column */
-      .left-column {
+      /* LEFT SECTION */
+      .left-section {
         display: flex;
         flex-direction: column;
+        gap: 20px;
         align-items: flex-start;
-        gap: 16px;
-        padding-right: 16px;
       }
       
-      .usb-port-icon {
-        width: 32px;
-        height: 32px;
-        border: 2px solid #444;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        background: rgba(255, 255, 255, 0.03);
-      }
-      
-      .control-buttons {
+      .port-button-container,
+      .mode-button-container,
+      .setting-button-container,
+      .updown-button-container {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        align-items: center;
+        gap: 8px;
       }
       
-      .control-btn {
-        width: 42px;
-        height: 42px;
+      .button-label {
+        font-size: 9px;
+        color: #6db3d4;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: center;
+        line-height: 1.2;
+      }
+      
+      .port-button,
+      .mode-button,
+      .setting-button,
+      .updown-button {
+        width: 56px;
+        height: 56px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid #333;
+        background: rgba(255,255,255,0.05);
+        border: 2px solid #444;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        color: #666;
-        transition: all 0.2s;
+        color: #888;
+        font-size: 20px;
+        transition: all 0.3s;
       }
       
-      .control-btn:hover {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: #555;
-        color: #999;
+      .port-button:hover,
+      .mode-button:hover,
+      .setting-button:hover,
+      .updown-button:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: #666;
+        color: #aaa;
       }
       
-      .menu-icon {
+      .hamburger-icon {
         display: flex;
         flex-direction: column;
-        gap: 3px;
+        gap: 4px;
       }
       
-      .menu-line {
-        width: 16px;
+      .hamburger-icon span {
+        width: 20px;
         height: 2px;
         background: currentColor;
         border-radius: 1px;
       }
       
-      .settings-icon {
-        font-size: 18px;
+      .updown-button {
+        flex-direction: column;
+        gap: 2px;
+        font-size: 16px;
+      }
+      
+      .ports-section {
+        width: 100%;
+        margin-top: 12px;
+      }
+      
+      .section-label {
+        font-size: 9px;
+        color: #6db3d4;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
+        margin-bottom: 8px;
       }
       
       .ports-list {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        width: 100%;
+        gap: 2px;
       }
       
-      .port-row {
-        display: flex;
+      .port-item {
+        display: grid;
+        grid-template-columns: 20px 24px 1fr;
         align-items: center;
         gap: 8px;
-        padding: 6px 8px;
-        cursor: pointer;
-        transition: background 0.2s;
+        padding: 8px 12px;
+        background: rgba(255,255,255,0.02);
         border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
         font-size: 13px;
       }
       
-      .port-row:hover {
-        background: rgba(255, 255, 255, 0.05);
+      .port-item:hover {
+        background: rgba(255,255,255,0.08);
       }
       
-      .port-number {
-        color: #999;
+      .port-item.active {
+        background: rgba(76, 175, 80, 0.1);
+      }
+      
+      .port-num {
+        color: #888;
         font-size: 12px;
-        min-width: 10px;
       }
       
       .port-icon {
-        font-size: 12px;
-        min-width: 16px;
+        font-size: 16px;
       }
       
-      .port-status {
-        font-size: 12px;
+      .port-value {
+        color: #fff;
         font-weight: 500;
-        min-width: 30px;
+        text-align: left;
       }
       
-      .port-on .port-status {
-        color: #4CAF50;
+      .probe-temp-label,
+      .probe-humidity-label,
+      .probe-vpd-label,
+      .controller-mode-label {
+        font-size: 9px;
+        color: #6db3d4;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 8px;
       }
       
-      .port-off {
-        opacity: 0.4;
-      }
-      
-      .port-off .port-status {
-        color: #999;
-      }
-      
-      /* Center Column */
-      .center-column {
+      /* CENTER SECTION */
+      .center-section {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 20px;
+        gap: 24px;
         padding: 0 20px;
       }
       
-      .main-temp {
+      .main-temp-display {
         display: flex;
-        align-items: baseline;
+        align-items: flex-start;
+        gap: 8px;
         cursor: pointer;
         transition: opacity 0.2s;
       }
       
-      .main-temp:hover {
+      .main-temp-display:hover {
         opacity: 0.8;
       }
       
       .temp-value {
-        font-size: 140px;
+        font-size: 180px;
         font-weight: 200;
         line-height: 0.85;
-        letter-spacing: -8px;
+        letter-spacing: -12px;
         font-family: 'Helvetica Neue', Arial, sans-serif;
       }
       
       .temp-unit {
-        font-size: 40px;
+        font-size: 32px;
         font-weight: 300;
-        margin-left: -6px;
-        align-self: flex-start;
-        margin-top: 12px;
+        line-height: 1.3;
+        margin-top: 8px;
+        text-align: center;
       }
       
-      .secondary-values {
+      .secondary-readings {
         display: flex;
-        gap: 40px;
+        gap: 48px;
         align-items: center;
+        margin-top: 8px;
       }
       
-      .value-item {
+      .reading-item {
         display: flex;
         align-items: baseline;
-        gap: 4px;
+        gap: 6px;
         cursor: pointer;
         transition: opacity 0.2s;
       }
       
-      .value-item:hover {
+      .reading-item:hover {
         opacity: 0.8;
       }
       
-      .value-number {
-        font-size: 36px;
+      .reading-value {
+        font-size: 42px;
         font-weight: 400;
       }
       
-      .value-unit {
-        font-size: 16px;
+      .reading-unit {
+        font-size: 18px;
         color: #999;
-      }
-      
-      .mode-display {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 13px;
-        margin-top: 8px;
-      }
-      
-      .mode-text {
-        font-weight: 600;
-        letter-spacing: 0.5px;
       }
       
       .mode-status {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 16px;
+        font-size: 14px;
+      }
+      
+      .mode-label {
+        font-weight: 600;
+        letter-spacing: 1px;
+      }
+      
+      .mode-detail {
         color: #999;
       }
       
-      /* Right Column */
-      .right-column {
+      /* RIGHT SECTION */
+      .right-section {
         display: flex;
         flex-direction: column;
-        align-items: flex-end;
         gap: 16px;
-        padding-left: 16px;
+        align-items: flex-end;
       }
       
       .controller-sensor {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
         cursor: pointer;
         transition: opacity 0.2s;
       }
@@ -689,39 +816,55 @@ class ACInfinityCard extends LitElement {
       }
       
       .sensor-icon {
-        font-size: 18px;
-        min-width: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        font-size: 24px;
+        width: 32px;
+        text-align: center;
       }
       
-      .sensor-icon.drops {
-        font-size: 14px;
-        letter-spacing: -2px;
+      .sensor-reading {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
       }
       
       .sensor-value {
-        display: flex;
-        align-items: baseline;
-        gap: 2px;
-      }
-      
-      .sensor-value .value {
-        font-size: 22px;
+        font-size: 28px;
         font-weight: 400;
       }
       
-      .sensor-value .unit {
-        font-size: 14px;
+      .sensor-unit {
+        font-size: 16px;
         color: #999;
       }
       
-      .status-text {
-        font-size: 16px;
+      .current-level {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 20px;
+        margin-top: 12px;
+      }
+      
+      .level-icon {
+        color: #888;
+      }
+      
+      .level-value {
+        font-size: 24px;
         font-weight: 500;
+      }
+      
+      .level-bar {
+        color: #666;
+      }
+      
+      .countdown-display {
         margin-top: 8px;
-        letter-spacing: 1px;
+      }
+      
+      .countdown-value {
+        font-size: 32px;
+        font-weight: 400;
       }
       
       .set-to-display {
@@ -733,104 +876,75 @@ class ACInfinityCard extends LitElement {
       }
       
       .set-to-label {
-        font-size: 9px;
+        font-size: 10px;
         color: #666;
         letter-spacing: 1px;
-        font-weight: 500;
       }
       
       .set-to-value {
-        font-size: 44px;
+        font-size: 52px;
         font-weight: 300;
         line-height: 1;
       }
       
-      .arrow-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 8px;
-      }
-      
-      .arrow-btn {
-        width: 36px;
-        height: 36px;
-        border: 1px solid #333;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 14px;
-        color: #666;
-        transition: all 0.2s;
-        background: rgba(255, 255, 255, 0.02);
-      }
-      
-      .arrow-btn:hover {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: #555;
+      .set-to-unit {
+        font-size: 18px;
         color: #999;
+        margin-top: -8px;
       }
       
-      /* Footer */
-      .footer {
-        display: flex;
-        justify-content: center;
-        padding: 12px;
-        border-top: 1px solid #2a2a2a;
+      /* BOTTOM BAR */
+      .bottom-bar {
+        padding: 16px;
+        text-align: center;
+        background: rgba(0,0,0,0.3);
+        border-top: 1px solid rgba(255,255,255,0.1);
       }
       
       .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 10px;
+        font-size: 11px;
+        letter-spacing: 3px;
         color: #666;
         text-transform: uppercase;
-        letter-spacing: 2px;
-        font-weight: 500;
       }
       
-      .brand-divider {
-        width: 1px;
-        height: 10px;
-        background: #444;
-      }
-      
-      /* Responsive */
-      @media (max-width: 768px) {
+      /* RESPONSIVE */
+      @media (max-width: 1024px) {
+        .ac-infinity-card {
+          min-width: 100%;
+        }
+        
         .main-display {
-          grid-template-columns: 1fr;
-          grid-template-rows: auto auto auto;
+          grid-template-columns: 180px 1fr 260px;
           gap: 24px;
-        }
-        
-        .left-column {
-          order: 3;
-          padding-right: 0;
-        }
-        
-        .center-column {
-          order: 1;
-          padding: 0;
-        }
-        
-        .right-column {
-          order: 2;
-          align-items: center;
-          padding-left: 0;
+          padding: 24px 16px;
         }
         
         .temp-value {
-          font-size: 100px;
+          font-size: 140px;
+        }
+      }
+      
+      @media (max-width: 768px) {
+        .main-display {
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+        
+        .left-section,
+        .right-section {
+          align-items: center;
+        }
+        
+        .temp-value {
+          font-size: 120px;
         }
       }
     `;
   }
 
   getCardSize() {
-    return 5;
+    return 6;
   }
 
   static getConfigElement() {
@@ -858,7 +972,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.4 ',
+  '%c AC-INFINITY-CARD %c Version 1.0.6 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
