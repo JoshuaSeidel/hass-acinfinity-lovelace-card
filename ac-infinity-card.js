@@ -62,59 +62,38 @@ class ACInfinityCard extends LitElement {
 
     const entities = Object.keys(this._hass.states);
     
-    // Find ALL entities that have AC Infinity device_id
-    // Start by finding controller entities
-    const controllerEntities = entities.filter(entity => {
+    // Find ALL AC Infinity entities
+    let acInfinityEntities = entities.filter(entity => {
       const state = this._hass.states[entity];
       if (!state) return false;
       
       const entityLower = entity.toLowerCase();
       const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
       
-      // Look for controller patterns (but not port entities)
+      // Exclude non-AC Infinity entities
+      const excludePatterns = ['import', 'export', 'billing', 'grid', 'cloud', 'alexa', 'google'];
+      if (excludePatterns.some(pattern => entityLower.includes(pattern))) {
+        return false;
+      }
+      
+      // Include any entity with tent/controller/probe patterns OR port patterns
       return (
-        (entityLower.includes('_tent_temperature') ||
+        entityLower.includes('_tent_temperature') ||
         entityLower.includes('_tent_humidity') ||
         entityLower.includes('_tent_vpd') ||
         entityLower.includes('probe_tent') ||
         entityLower.includes('controller_temperature') ||
         entityLower.includes('controller_humidity') ||
         entityLower.includes('controller_vpd') ||
-        friendlyName.includes('tent temperature') ||
-        friendlyName.includes('tent humidity') ||
-        friendlyName.includes('tent vpd')) &&
-        !entityLower.includes('import') &&
-        !entityLower.includes('export')
-      );
-    });
-    
-    // Get all device IDs from the controller (parent device)
-    const controllerDeviceIds = new Set();
-    controllerEntities.forEach(entity => {
-      const state = this._hass.states[entity];
-      if (state?.attributes?.device_id) {
-        controllerDeviceIds.add(state.attributes.device_id);
-      }
-    });
-    
-    // Now find ALL entities that belong to ANY AC Infinity device
-    // This includes port devices which are children of the controller
-    let acInfinityEntities = entities.filter(entity => {
-      const state = this._hass.states[entity];
-      if (!state?.attributes?.device_id) return false;
-      
-      // Check if it's a controller device
-      if (controllerDeviceIds.has(state.attributes.device_id)) return true;
-      
-      // Check if entity has port_number or port_status (v1.2.2 pattern)
-      const entityLower = entity.toLowerCase();
-      const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
-      
-      return (
         entityLower.includes('port_number') ||
         entityLower.includes('port_status') ||
         entityLower.includes('device_type') ||
         entityLower.includes('current_power') ||
+        friendlyName.includes('tent temperature') ||
+        friendlyName.includes('tent humidity') ||
+        friendlyName.includes('tent vpd') ||
+        friendlyName.includes('controller temperature') ||
+        friendlyName.includes('controller humidity') ||
         friendlyName.includes('port number') ||
         friendlyName.includes('port status')
       );
