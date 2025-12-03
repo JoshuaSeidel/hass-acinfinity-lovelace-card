@@ -154,8 +154,8 @@ class ACInfinityCard extends LitElement {
                  && !entityName.includes('port')) {
         controllers[deviceId].controller_vpd = entity;
       }
-      else if (entityName.includes('port') && (entityName.match(/port[_\s]*(\d+)/) || friendlyNameLower.match(/port[_\s]*(\d+)/))) {
-        const portMatch = entityName.match(/port[_\s]*(\d+)/) || friendlyNameLower.match(/port[_\s]*(\d+)/);
+      else if (entityName.includes('port') || friendlyNameLower.includes('port')) {
+        const portMatch = entityName.match(/port[_\s]*(\d+)/) || friendlyNameLower.match(/port\s*(\d+)/);
         if (portMatch) {
           const portNum = parseInt(portMatch[1]);
           
@@ -171,15 +171,23 @@ class ACInfinityCard extends LitElement {
             controllers[deviceId].ports.push(portObj);
           }
           
-          if (state.entity_id.startsWith('switch.') || entityName.includes('state')) {
+          // Detect entity type
+          if (state.entity_id.startsWith('switch.')) {
             portObj.state = entity;
-          } else if (entityName.includes('speak') || entityName.includes('current_power') || entityName.includes('power')) {
+          } else if (state.entity_id.startsWith('number.') && (entityName.includes('power') || entityName.includes('speed'))) {
             portObj.power = entity;
-            if (friendlyName && !friendlyName.toLowerCase().includes('power')) {
-              portObj.name = friendlyName.replace(/\s+(State|Power|Current Power).*$/i, '');
-            }
-          } else if (entityName.includes('mode')) {
+          } else if (state.entity_id.startsWith('sensor.') && (entityName.includes('power') || entityName.includes('speed') || entityName.includes('speak'))) {
+            portObj.power = entity;
+          } else if (entityName.includes('mode') || state.entity_id.startsWith('select.')) {
             portObj.mode = entity;
+          }
+          
+          // Extract port name from friendly name
+          if (friendlyName) {
+            const cleanName = friendlyName.replace(/\s+(Port \d+|State|Power|Current Power|Speed|Mode).*$/i, '').trim();
+            if (cleanName && !cleanName.toLowerCase().includes('controller')) {
+              portObj.name = cleanName;
+            }
           }
         }
       }
@@ -230,7 +238,44 @@ class ACInfinityCard extends LitElement {
     return '●';
   }
 
+  _showPortsDialog() {
+    // Show a dialog with all port controls
+    const controller = Object.values(this._entities || {})[0];
+    if (!controller || !controller.ports || controller.ports.length === 0) {
+      alert('No ports detected. Make sure your AC Infinity integration is properly configured.');
+      return;
+    }
+    
+    // Open the first port's entity to show port controls
+    const firstPort = controller.ports.find(p => p.state || p.power);
+    if (firstPort) {
+      this._handleEntityClick(firstPort.state || firstPort.power);
+    }
+  }
 
+  _showModeDialog() {
+    // Show mode selection dialog
+    const controller = Object.values(this._entities || {})[0];
+    if (!controller) return;
+    
+    // Try to find a mode entity
+    const modePort = controller.ports.find(p => p.mode);
+    if (modePort && modePort.mode) {
+      this._handleEntityClick(modePort.mode);
+    } else {
+      // Fallback to showing controller info
+      this._handleEntityClick(controller.probe_temperature);
+    }
+  }
+
+  _showSettingsDialog() {
+    // Show settings/configuration dialog
+    const controller = Object.values(this._entities || {})[0];
+    if (!controller) return;
+    
+    // Open controller temperature entity which typically has device info
+    this._handleEntityClick(controller.controller_temperature || controller.probe_temperature);
+  }
 
   _getCurrentTime() {
     const now = new Date();
@@ -316,7 +361,7 @@ class ACInfinityCard extends LitElement {
             <div class="buttons-column">
               <!-- Port Button (top circle button) -->
               <div class="port-button-container">
-                <button class="port-button" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
+                <button class="port-button" @click="${() => this._showPortsDialog()}">
                   <span class="button-icon">○─</span>
                 </button>
                 <span class="button-label">PORT BUTTON</span>
@@ -324,7 +369,7 @@ class ACInfinityCard extends LitElement {
               
               <!-- Mode Button -->
               <div class="mode-button-container">
-                <button class="mode-button" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
+                <button class="mode-button" @click="${() => this._showModeDialog()}">
                   <div class="hamburger-icon">
                     <span></span>
                     <span></span>
@@ -336,7 +381,7 @@ class ACInfinityCard extends LitElement {
               
               <!-- Setting Button -->
               <div class="setting-button-container">
-                <button class="setting-button" @click="${() => this._handleEntityClick(controller.controller_temperature)}">
+                <button class="setting-button" @click="${() => this._showSettingsDialog()}">
                   <span class="settings-icon">⚙</span>
                 </button>
                 <span class="button-label">SETTING BUTTON</span>
@@ -351,9 +396,20 @@ class ACInfinityCard extends LitElement {
                   ${ports.map(port => {
                     const state = this._getEntityState(port.state);
                     const power = this._getEntityState(port.power);
-                    const isOn = state === 'on' || (power && power !== '0' && power !== 'off' && power !== 'unavailable' && power !== 'unknown');
-                    const displayValue = isOn ? this._formatValue(power) : 'OFF';
-                    const iconColor = isOn ? '#fff' : '#555';
+                    const isOn = state === 'on' || (power && power !== '0' && power !== 'off' && power !== 'unavailable' && power !== 'unknown' && power !== 'N/A');
+                    
+                    let displayValue;
+                    if (port.power && power !== 'N/A' && power !== 'unavailable' && power !== 'unknown') {
+                      displayValue = this._formatValue(power);
+                    } else if (state === 'on') {
+                      displayValue = 'ON';
+                    } else if (state === 'off') {
+                      displayValue = 'OFF';
+                    } else {
+                      displayValue = '--';
+                    }
+                    
+                    const iconColor = isOn ? '#4CAF50' : '#555';
                     
                     return html`
                       <div class="port-item ${isOn ? 'active' : ''}" 
