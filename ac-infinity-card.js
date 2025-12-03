@@ -213,26 +213,37 @@ class ACInfinityCard extends LitElement {
               name: `Port ${portNum}`,
               state: null,
               power: null,
-              mode: null
+              mode: null,
+              status: null,
+              device_type: null
             };
             controllers[deviceId].ports.push(portObj);
           }
           
-          // Detect entity type
-          if (state.entity_id.startsWith('switch.')) {
+          // Detect entity type based on v1.2.0 integration patterns
+          if (entityName.includes('status')) {
+            portObj.status = entity;
+          } else if (entityName.includes('device_type')) {
+            portObj.device_type = entity;
+          } else if (entityName.includes('current_power') || (state.entity_id.startsWith('sensor.') && entityName.includes('power'))) {
+            portObj.power = entity;
+          } else if (state.entity_id.startsWith('switch.')) {
             portObj.state = entity;
           } else if (state.entity_id.startsWith('number.') && (entityName.includes('power') || entityName.includes('speed'))) {
-            portObj.power = entity;
-          } else if (state.entity_id.startsWith('sensor.') && (entityName.includes('power') || entityName.includes('speed') || entityName.includes('speak'))) {
             portObj.power = entity;
           } else if (entityName.includes('mode') || state.entity_id.startsWith('select.')) {
             portObj.mode = entity;
           }
           
-          // Extract port name from friendly name
-          if (friendlyName) {
-            const cleanName = friendlyName.replace(/\s+(Port \d+|State|Power|Current Power|Speed|Mode).*$/i, '').trim();
-            if (cleanName && !cleanName.toLowerCase().includes('controller')) {
+          // Extract port name from device_type entity or friendly name
+          if (portObj.device_type) {
+            const deviceType = this._getEntityState(portObj.device_type);
+            if (deviceType && deviceType !== 'N/A' && deviceType !== 'No Device Type') {
+              portObj.name = deviceType;
+            }
+          } else if (friendlyName) {
+            const cleanName = friendlyName.replace(/\\s+(Port \\d+|Status|Device Type|State|Power|Current Power|Speed|Mode).*$/i, '').trim();
+            if (cleanName && !cleanName.toLowerCase().includes('controller') && !cleanName.toLowerCase().includes('tent')) {
               portObj.name = cleanName;
             }
           }
@@ -441,13 +452,20 @@ class ACInfinityCard extends LitElement {
                 <span class="section-label">PORTS</span>
                 <div class="ports-list">
                   ${ports.map(port => {
-                    const state = this._getEntityState(port.state);
+                    // Use v1.2.0 status sensor if available
+                    const status = this._getEntityState(port.status);
                     const power = this._getEntityState(port.power);
-                    const isOn = state === 'on' || (power && power !== '0' && power !== 'off' && power !== 'unavailable' && power !== 'unknown' && power !== 'N/A');
+                    const state = this._getEntityState(port.state);
+                    
+                    const isOn = status === 'Active' || state === 'on' || (power && power !== '0' && power !== 'off' && power !== 'unavailable' && power !== 'unknown' && power !== 'N/A');
                     
                     let displayValue;
                     if (port.power && power !== 'N/A' && power !== 'unavailable' && power !== 'unknown') {
                       displayValue = this._formatValue(power);
+                    } else if (status === 'Active') {
+                      displayValue = 'ON';
+                    } else if (status === 'Inactive') {
+                      displayValue = 'OFF';
                     } else if (state === 'on') {
                       displayValue = 'ON';
                     } else if (state === 'off') {
@@ -460,7 +478,7 @@ class ACInfinityCard extends LitElement {
                     
                     return html`
                       <div class="port-item ${isOn ? 'active' : ''}" 
-                           @click="${() => this._handleEntityClick(port.state || port.power)}">
+                           @click="${() => this._handleEntityClick(port.status || port.state || port.power)}">
                         <span class="port-num">${port.number}</span>
                         <span class="port-icon" style="color: ${iconColor}">●</span>
                         <span class="port-value">${displayValue}</span>
