@@ -189,8 +189,8 @@ class ACInfinityCard extends LitElement {
       const portMatch = entityName.match(/port[_\s]*(\d+)/) || friendlyNameLower.match(/port\s*(\d+)/);
       if (portMatch || (friendlyNameLower.includes('port') && friendlyNameLower.match(/\d+/))) {
         const match = portMatch || friendlyNameLower.match(/(\d+)/);
-        if (match) {
-          const portNum = parseInt(portMatch[1]);
+        if (match && match[1]) {
+          const portNum = parseInt(match[1]);
           
           let portObj = controllers[deviceId].ports.find(p => p.number === portNum);
           if (!portObj) {
