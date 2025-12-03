@@ -792,7 +792,7 @@ class ACInfinityCard extends LitElement {
       
       .port-item {
         display: grid;
-        grid-template-columns: 20px 24px 1fr;
+        grid-template-columns: 1fr 24px 40px;
         align-items: center;
         gap: 8px;
         padding: 8px 12px;
@@ -810,17 +810,21 @@ class ACInfinityCard extends LitElement {
       .port-num {
         color: #888;
         font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       
       .port-icon {
         font-size: 16px;
         color: inherit;
+        justify-self: center;
       }
       
       .port-value {
         color: #fff;
         font-weight: 500;
-        text-align: left;
+        text-align: right;
       }
       
       .probe-temp-label,
@@ -1158,7 +1162,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.23 ',
+  '%c AC-INFINITY-CARD %c Version 1.0.24 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
