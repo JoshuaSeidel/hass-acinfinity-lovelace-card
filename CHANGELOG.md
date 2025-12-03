@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 2024-12-03
+
+### Complete Visual Redesign to Match Hardware
+- **Exact hardware replication** - Card now looks identical to actual AC Infinity A+ Controller
+- **Proper 3-column layout** - Left (ports), Center (main temp), Right (controller sensors)
+- **All 8 ports displayed** - Shows all ports 1-8 with proper status indicators
+- **Enhanced sensor display** - Cloud icon and water drop icons match hardware
+- **Added "SET TO" display** - Shows target temperature at bottom right
+- **Arrow buttons** - Up/down navigation buttons on right side
+- **Better port icons** - Color-coded status indicators (off, low, medium, high)
+- **Improved spacing** - Matches hardware proportions and layout exactly
+
 ## [1.0.3] - 2024-12-03
 
 ### Complete Rewrite
