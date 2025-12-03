@@ -235,14 +235,9 @@ class ACInfinityCard extends LitElement {
             portObj.mode = entity;
           }
           
-          // Extract port name from device_type entity or friendly name
-          if (portObj.device_type) {
-            const deviceType = this._getEntityState(portObj.device_type);
-            if (deviceType && deviceType !== 'N/A' && deviceType !== 'No Device Type') {
-              portObj.name = deviceType;
-            }
-          } else if (friendlyName) {
-            const cleanName = friendlyName.replace(/\\s+(Port \\d+|Status|Device Type|State|Power|Current Power|Speed|Mode).*$/i, '').trim();
+          // Extract port name from friendly name (device type will be loaded during render)
+          if (friendlyName) {
+            const cleanName = friendlyName.replace(/\s+(Port \d+|Status|Device Type|State|Power|Current Power|Speed|Mode).*$/i, '').trim();
             if (cleanName && !cleanName.toLowerCase().includes('controller') && !cleanName.toLowerCase().includes('tent')) {
               portObj.name = cleanName;
             }
@@ -456,8 +451,15 @@ class ACInfinityCard extends LitElement {
                     const status = this._getEntityState(port.status);
                     const power = this._getEntityState(port.power);
                     const state = this._getEntityState(port.state);
+                    const deviceType = this._getEntityState(port.device_type);
                     
                     const isOn = status === 'Active' || state === 'on' || (power && power !== '0' && power !== 'off' && power !== 'unavailable' && power !== 'unknown' && power !== 'N/A');
+                    
+                    // Use device type for name if available
+                    let portName = port.name;
+                    if (deviceType && deviceType !== 'N/A' && deviceType !== 'unavailable' && deviceType !== 'No Device Type') {
+                      portName = deviceType;
+                    }
                     
                     let displayValue;
                     if (port.power && power !== 'N/A' && power !== 'unavailable' && power !== 'unknown') {
@@ -478,7 +480,8 @@ class ACInfinityCard extends LitElement {
                     
                     return html`
                       <div class="port-item ${isOn ? 'active' : ''}" 
-                           @click="${() => this._handleEntityClick(port.status || port.state || port.power)}">
+                           @click="${() => this._handleEntityClick(port.status || port.state || port.power)}"
+                           title="${portName}">
                         <span class="port-num">${port.number}</span>
                         <span class="port-icon" style="color: ${iconColor}">●</span>
                         <span class="port-value">${displayValue}</span>
