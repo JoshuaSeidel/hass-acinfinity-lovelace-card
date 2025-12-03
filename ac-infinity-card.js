@@ -61,10 +61,17 @@ class ACInfinityCard extends LitElement {
     if (!this._hass || !this._hass.states) return;
 
     const entities = Object.keys(this._hass.states);
-    const acInfinityEntities = entities.filter(entity => {
+    
+    // First, find AC Infinity device entities by checking integration domain
+    let acInfinityEntities = entities.filter(entity => {
       const state = this._hass.states[entity];
       if (!state) return false;
       
+      // Check if entity belongs to ac_infinity integration
+      const integration = state.attributes?.integration;
+      if (integration === 'ac_infinity') return true;
+      
+      // Fallback: check entity patterns
       const entityLower = entity.toLowerCase();
       const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
       
@@ -81,7 +88,7 @@ class ACInfinityCard extends LitElement {
         entityLower.includes('controller_temperature') ||
         entityLower.includes('controller_humidity') ||
         entityLower.includes('controller_vpd') ||
-        (entityLower.includes('port') && entityLower.match(/port[_\s]*\d+/)) ||
+        entityLower.includes('port') ||
         friendlyName.includes('tent temperature') ||
         friendlyName.includes('tent humidity') ||
         friendlyName.includes('tent vpd') ||
@@ -94,11 +101,35 @@ class ACInfinityCard extends LitElement {
         friendlyName.includes('controller temperature') ||
         friendlyName.includes('controller humidity') ||
         friendlyName.includes('controller vpd') ||
-        (friendlyName.includes('port ') && friendlyName.match(/port\s*\d+/))
+        friendlyName.includes('port')
       );
     });
+    
+    // If we found entities by integration, get ALL entities from those devices
+    if (acInfinityEntities.length > 0) {
+      const deviceIds = new Set();
+      acInfinityEntities.forEach(entity => {
+        const state = this._hass.states[entity];
+        if (state?.attributes?.device_id) {
+          deviceIds.add(state.attributes.device_id);
+        }
+      });
+      
+      // Get ALL entities from these devices
+      if (deviceIds.size > 0) {
+        acInfinityEntities = entities.filter(entity => {
+          const state = this._hass.states[entity];
+          return state?.attributes?.device_id && deviceIds.has(state.attributes.device_id);
+        });
+      }
+    }
 
     console.log('AC Infinity entities found:', acInfinityEntities);
+    console.log('Full entity details:', acInfinityEntities.map(e => ({
+      id: e,
+      friendly_name: this._hass.states[e]?.attributes?.friendly_name,
+      device_id: this._hass.states[e]?.attributes?.device_id
+    })));
 
     const controllers = {};
     
@@ -154,9 +185,11 @@ class ACInfinityCard extends LitElement {
                  && !entityName.includes('port')) {
         controllers[deviceId].controller_vpd = entity;
       }
-      else if (entityName.includes('port') || friendlyNameLower.includes('port')) {
-        const portMatch = entityName.match(/port[_\s]*(\d+)/) || friendlyNameLower.match(/port\s*(\d+)/);
-        if (portMatch) {
+      // Check for port entities
+      const portMatch = entityName.match(/port[_\s]*(\d+)/) || friendlyNameLower.match(/port\s*(\d+)/);
+      if (portMatch || (friendlyNameLower.includes('port') && friendlyNameLower.match(/\d+/))) {
+        const match = portMatch || friendlyNameLower.match(/(\d+)/);
+        if (match) {
           const portNum = parseInt(portMatch[1]);
           
           let portObj = controllers[deviceId].ports.find(p => p.number === portNum);
