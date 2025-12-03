@@ -71,38 +71,36 @@ class ACInfinityCard extends LitElement {
       const integration = state.attributes?.integration;
       if (integration === 'ac_infinity') return true;
       
-      // Fallback: check entity patterns
+      // Fallback: check entity patterns - be very specific to avoid false positives
       const entityLower = entity.toLowerCase();
       const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
       
-      return (
-        entityLower.includes('tent_temperature') ||
-        entityLower.includes('tent_humidity') ||
-        entityLower.includes('tent_vpd') ||
-        entityLower.includes('probe_temperature') ||
-        entityLower.includes('probe_humidity') ||
-        entityLower.includes('probe_vpd') ||
-        entityLower.includes('built_in_temperature') ||
-        entityLower.includes('built_in_humidity') ||
-        entityLower.includes('built_in_vpd') ||
+      // Look for specific AC Infinity patterns (probe, controller, tent)
+      const hasACInfinityPattern = (
+        entityLower.includes('_tent_temperature') ||
+        entityLower.includes('_tent_humidity') ||
+        entityLower.includes('_tent_vpd') ||
+        entityLower.includes('probe_tent') ||
         entityLower.includes('controller_temperature') ||
         entityLower.includes('controller_humidity') ||
         entityLower.includes('controller_vpd') ||
-        entityLower.includes('port') ||
         friendlyName.includes('tent temperature') ||
         friendlyName.includes('tent humidity') ||
         friendlyName.includes('tent vpd') ||
-        friendlyName.includes('probe temperature') ||
-        friendlyName.includes('probe humidity') ||
-        friendlyName.includes('probe vpd') ||
-        friendlyName.includes('built-in temperature') ||
-        friendlyName.includes('built-in humidity') ||
-        friendlyName.includes('built-in vpd') ||
         friendlyName.includes('controller temperature') ||
-        friendlyName.includes('controller humidity') ||
-        friendlyName.includes('controller vpd') ||
-        friendlyName.includes('port')
+        friendlyName.includes('controller humidity')
       );
+      
+      // Don't match generic words like import/export
+      const hasExcludedWords = (
+        entityLower.includes('import') ||
+        entityLower.includes('export') ||
+        entityLower.includes('billing') ||
+        entityLower.includes('grid') ||
+        entityLower.includes('cloud')
+      );
+      
+      return hasACInfinityPattern && !hasExcludedWords;
     });
     
     // If we found entities by integration, get ALL entities from those devices
@@ -128,6 +126,22 @@ class ACInfinityCard extends LitElement {
     console.log('Full entity details:', acInfinityEntities.map(e => ({
       id: e,
       friendly_name: this._hass.states[e]?.attributes?.friendly_name,
+      device_id: this._hass.states[e]?.attributes?.device_id,
+      integration: this._hass.states[e]?.attributes?.integration
+    })));
+    
+    // Also search for any entities with "port" in name from AC Infinity devices
+    const portSearchResults = entities.filter(e => {
+      const entityLower = e.toLowerCase();
+      const state = this._hass.states[e];
+      const friendlyName = (state?.attributes?.friendly_name || '').toLowerCase();
+      return (entityLower.includes('port') || friendlyName.includes('port')) && 
+             !entityLower.includes('import') && !entityLower.includes('export');
+    });
+    console.log('All entities with "port" in name:', portSearchResults.map(e => ({
+      id: e,
+      friendly_name: this._hass.states[e]?.attributes?.friendly_name,
+      state: this._hass.states[e]?.state,
       device_id: this._hass.states[e]?.attributes?.device_id
     })));
 
