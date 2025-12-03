@@ -166,12 +166,16 @@ class ACInfinityCard extends LitElement {
         // This entity tells us the port number for this device
         const portNum = parseInt(this._hass.states[entity]?.state);
         if (!isNaN(portNum)) {
+          // Extract the device name from friendly name (everything before "Port Number")
+          const portNamePrefix = friendlyName.split(' Port Number')[0] || `Port ${portNum}`;
+          
           // Find or create port object
           let portObj = controllers[deviceId].ports.find(p => p.number === portNum);
           if (!portObj) {
             portObj = {
               number: portNum,
-              name: friendlyName.split(' Port Number')[0] || `Port ${portNum}`,
+              name: portNamePrefix,
+              namePrefix: portNamePrefix.toLowerCase(), // Store lowercase for matching
               state: null,
               power: null,
               mode: null,
@@ -185,11 +189,10 @@ class ACInfinityCard extends LitElement {
       }
       
       // Check for other port-related entities and associate them with the right port
-      if (state.attributes?.device_id) {
-        // Find port by device_id
-        const portObj = controllers[deviceId].ports.find(p => p.port_device_id === state.attributes.device_id);
-        if (portObj) {
-          // Associate this entity with the port
+      // Try matching by device_id first (if available), then by name prefix
+      for (const portObj of controllers[deviceId].ports) {
+        // Match by device_id if available
+        if (state.attributes?.device_id && portObj.port_device_id === state.attributes.device_id) {
           if (entityName.includes('port_status') || entityName.includes('status')) {
             portObj.status = entity;
           } else if (entityName.includes('device_type')) {
@@ -203,6 +206,24 @@ class ACInfinityCard extends LitElement {
           } else if (entityName.includes('mode') || state.entity_id.startsWith('select.')) {
             portObj.mode = entity;
           }
+          break;
+        }
+        // Match by name prefix (for entities without device_id)
+        else if (portObj.namePrefix && friendlyNameLower.startsWith(portObj.namePrefix)) {
+          if (entityName.includes('port_status') || friendlyNameLower.includes('port status')) {
+            portObj.status = entity;
+          } else if (entityName.includes('device_type') || friendlyNameLower.includes('device type')) {
+            portObj.device_type = entity;
+          } else if (entityName.includes('current_power') || friendlyNameLower.includes('current power')) {
+            portObj.power = entity;
+          } else if (state.entity_id.startsWith('switch.') && friendlyNameLower.includes(portObj.namePrefix)) {
+            portObj.state = entity;
+          } else if (state.entity_id.startsWith('number.') && (entityName.includes('power') || entityName.includes('speed'))) {
+            portObj.power = entity;
+          } else if (entityName.includes('mode') || state.entity_id.startsWith('select.')) {
+            portObj.mode = entity;
+          }
+          break;
         }
       }
     });
@@ -1124,7 +1145,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.7 ',
+  '%c AC-INFINITY-CARD %c Version 1.0.20 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
