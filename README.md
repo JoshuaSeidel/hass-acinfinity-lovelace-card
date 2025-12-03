@@ -28,6 +28,14 @@ A custom Lovelace card for Home Assistant that replicates the AC Infinity A+ Con
 
 This card requires the [AC Infinity Home Assistant Integration](https://github.com/JoshuaSeidel/homeassistant-acinfinity) to be installed and configured.
 
+⚠️ **Important**: Make sure you have the integration working first! The card will automatically detect entities created by the integration with names like:
+- `sensor.your_controller_tent_temperature`
+- `sensor.your_controller_tent_humidity`
+- `sensor.your_controller_tent_vpd`
+- `sensor.your_controller_built_in_temperature`
+- `sensor.your_controller_port_1_state`
+- etc.
+
 ## Requirements
 
 - Home Assistant 2023.1 or newer

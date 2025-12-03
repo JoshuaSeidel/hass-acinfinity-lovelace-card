@@ -48,9 +48,47 @@ class ACInfinityCard extends LitElement {
     if (!this._hass || !this._hass.states) return;
 
     const entities = Object.keys(this._hass.states);
+    // Filter entities by checking if they come from ac_infinity integration
+    // The integration creates entities with entity_ids that typically contain patterns like:
+    // - Sensor names with "tent", "probe", "built_in", "controller" in entity_id or friendly_name
+    // - Device info with proper attribution
     const acInfinityEntities = entities.filter(entity => {
       const state = this._hass.states[entity];
-      return state && state.attributes && state.attributes.integration === 'ac_infinity';
+      if (!state) return false;
+      
+      // Check if entity_id or friendly_name contains AC Infinity patterns
+      const entityLower = entity.toLowerCase();
+      const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
+      
+      // Look for AC Infinity specific patterns
+      return (
+        entityLower.includes('tent_temperature') ||
+        entityLower.includes('tent_humidity') ||
+        entityLower.includes('tent_vpd') ||
+        entityLower.includes('probe_temperature') ||
+        entityLower.includes('probe_humidity') ||
+        entityLower.includes('probe_vpd') ||
+        entityLower.includes('built_in_temperature') ||
+        entityLower.includes('built_in_humidity') ||
+        entityLower.includes('built_in_vpd') ||
+        entityLower.includes('controller_temperature') ||
+        entityLower.includes('controller_humidity') ||
+        entityLower.includes('controller_vpd') ||
+        (entityLower.includes('port') && entityLower.match(/port[_\s]*\d+/)) ||
+        friendlyName.includes('tent temperature') ||
+        friendlyName.includes('tent humidity') ||
+        friendlyName.includes('tent vpd') ||
+        friendlyName.includes('probe temperature') ||
+        friendlyName.includes('probe humidity') ||
+        friendlyName.includes('probe vpd') ||
+        friendlyName.includes('built-in temperature') ||
+        friendlyName.includes('built-in humidity') ||
+        friendlyName.includes('built-in vpd') ||
+        friendlyName.includes('controller temperature') ||
+        friendlyName.includes('controller humidity') ||
+        friendlyName.includes('controller vpd') ||
+        (friendlyName.includes('port ') && friendlyName.match(/port\s*\d+/))
+      );
     });
 
     console.log('AC Infinity entities found:', acInfinityEntities);

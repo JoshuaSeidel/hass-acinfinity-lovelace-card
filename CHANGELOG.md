@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.5] - 2024-12-03
+
+### Fixed
+- **Entity auto-detection improved** - Now properly detects entities from AC Infinity integration
+- Removed incorrect `integration` attribute check (entities don't expose this)
+- Added pattern matching for AC Infinity entity naming conventions
+- Better detection of tent/probe sensors, controller sensors, and port entities
+- Added helpful documentation about entity naming requirements
+
+### Technical Details
+- Detection now matches entity_id and friendly_name patterns like:
+  - `tent_temperature`, `tent_humidity`, `tent_vpd`
+  - `probe_temperature`, `probe_humidity`, `probe_vpd`
+  - `built_in_temperature`, `built_in_humidity`, `built_in_vpd`
+  - `controller_temperature`, `controller_humidity`, `controller_vpd`
+  - Port entities with `port_X` pattern
+
 ## [1.0.4] - 2024-12-03
 
 ### Complete Visual Redesign to Match Hardware
