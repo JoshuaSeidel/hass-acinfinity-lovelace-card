@@ -1,5 +1,6 @@
 {
   "name": "AC Infinity Lovelace Card",
+  "filename": "ac-infinity-card.js",
   "render_readme": true,
   "content_in_root": true
 }
