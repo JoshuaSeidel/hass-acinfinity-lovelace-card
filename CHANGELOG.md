@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.6] - 2024-12-03
+
+### COMPLETE VISUAL REWRITE - EXACT HARDWARE MATCH
+This version is a complete from-scratch rebuild to match the AC Infinity A+ Controller hardware EXACTLY as shown in the image.
+
+**EVERY UI Element Now Included:**
+- ✅ **Wide landscape layout** - 900px minimum width matching actual controller
+- ✅ **Top Bar** - AI badge left, WiFi/Cloud icons center, **Current Time upper right**
+- ✅ **Left Section** - Port button, Mode button, all 8 ports with green indicators, Settings button, Probe Temperature label
+- ✅ **Center Section** - Massive 180px temperature display, humidity/VPD readings, mode status, Controller Mode label
+- ✅ **Right Section** - Probe Humidity label, Up/Down button, controller temp with cloud icon, controller humidity with water drop icon, Current Level indicator, Countdown display, SET TO display, User Setting label, Probe VPD label
+- ✅ **Bottom Bar** - AC INFINITY branding
+- ✅ **All Labels** - Matching blue color (#6db3d4) from hardware image annotations
+- ✅ **Proper Spacing** - Authentic gaps and sizing matching real hardware
+- ✅ **Live Time** - Updates every minute automatically
+
+**What Changed:**
+- Grid layout: 220px | 1fr | 320px (left | center | right)
+- Added time display with auto-refresh
+- Added disconnectedCallback to clean up timer
+- All button labels and section labels now visible
+- Controller temperature and humidity sensors on right side
+- Proper icon usage (cloud ☁️, water drops 💧)
+- Green port indicators when active
+- Responsive design for smaller screens
+
 ## [1.0.5] - 2024-12-03
 
 ### Fixed
@@ -10,14 +36,6 @@ All notable changes to this project will be documented in this file.
 - Added pattern matching for AC Infinity entity naming conventions
 - Better detection of tent/probe sensors, controller sensors, and port entities
 - Added helpful documentation about entity naming requirements
-
-### Technical Details
-- Detection now matches entity_id and friendly_name patterns like:
-  - `tent_temperature`, `tent_humidity`, `tent_vpd`
-  - `probe_temperature`, `probe_humidity`, `probe_vpd`
-  - `built_in_temperature`, `built_in_humidity`, `built_in_vpd`
-  - `controller_temperature`, `controller_humidity`, `controller_vpd`
-  - Port entities with `port_X` pattern
 
 ## [1.0.4] - 2024-12-03
 
@@ -41,23 +59,13 @@ All notable changes to this project will be documented in this file.
 - **Enhanced port display** - Shows port names and better power status
 - **Improved performance** - Better state management and rendering
 
-### Technical Improvements
-- Import LitElement from unpkg CDN
-- Use `html` and `css` tagged templates
-- Proper reactive properties with `@property` decorators
-- Better event handling with `@click` bindings
-- Improved auto-detection logic for sensors and ports
-
 ## [1.0.2] - 2024-12-03
 
-### Fixed
 ### Fixed
 - ✅ Entity auto-detection now correctly checks `integration` attribute for 'ac_infinity'
 - ✅ Proper detection of all entities from AC Infinity integration
 - ✅ Corrected entity categorization using friendly names and entity IDs
 - ✅ Fixed HACS validation action to use 'dashboard' category instead of 'plugin'
-- Corrected entity detection pattern to match integration's unique_id format: `ac_infinity_{MAC_ADDR}_*`
-- Fixed entity categorization for probe/tent sensors vs controller sensors
 
 ### Changed
 - Complete UI redesign to accurately match AC Infinity A+ Controller interface
@@ -65,34 +73,12 @@ All notable changes to this project will be documented in this file.
 - Right side displays controller built-in sensors (secondary readings)
 - Improved styling with proper spacing, sizing, and colors to match hardware
 - Simplified layout with proper three-column grid structure
-- Enhanced visual editor with manual entity configuration options
-
-### Added
-- Manual entity configuration support as fallback to auto-detection
-- Support for both probe/tent sensors and controller sensors
-- Ability to configure specific entities in Lovelace UI editor
-- Better entity detection for various sensor naming patterns
 
 ## [1.0.0] - 2024-12-02
 
-### Added
-- Initial release of AC Infinity Lovelace Card
-- Auto-detection of AC Infinity integration entities
-- Replica of AC Infinity A+ Controller interface
-- Display for temperature, humidity, and VPD sensors
-- Port status display (1-8 ports)
-- Interactive port controls
-- Visual configuration editor
-- HACS support
-- Responsive design for mobile and desktop
-
-### Features
-- Automatic entity detection from AC Infinity integration
-- Real-time sensor updates
-- Click-to-control port functionality
-- Modern dark theme matching AC Infinity hardware
-- Support for multiple controllers
-- Configurable display options
-
-[1.0.2]: https://github.com/JoshuaSeidel/hass-acinfinity-lovelace-card/releases/tag/v1.0.2
-[1.0.0]: https://github.com/JoshuaSeidel/hass-acinfinity-lovelace-card/releases/tag/v1.0.0
+### Initial Release
+- Auto-detection of AC Infinity entities
+- Replica of A+ Controller interface
+- Support for 8 ports
+- Temperature, humidity, and VPD displays
+- Port status indicators
