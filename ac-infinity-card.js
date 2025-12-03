@@ -334,6 +334,13 @@ class ACInfinityCard extends LitElement {
                 <span class="button-label">MODE BUTTON</span>
               </div>
               
+              <!-- Setting Button -->
+              <div class="setting-button-container">
+                <button class="setting-button" @click="${() => this._handleEntityClick(controller.controller_temperature)}">
+                  <span class="settings-icon">⚙</span>
+                </button>
+                <span class="button-label">SETTING BUTTON</span>
+              </div>
             </div>
             
             <!-- PORTS COLUMN -->
@@ -359,10 +366,7 @@ class ACInfinityCard extends LitElement {
                   })}
                 </div>
               </div>
-                </div>
-              </div>
-              
-
+            </div>
             
             <!-- CENTER COLUMN: Main Temperature Display -->
             <div class="center-section">
@@ -460,9 +464,13 @@ class ACInfinityCard extends LitElement {
         border-radius: 16px;
         overflow: hidden;
         box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        min-width: 900px;
+        width: 100%;
         max-width: 1400px;
         margin: 0 auto;
+      }
+      
+      ha-card {
+        overflow: visible;
       }
       
       /* TOP BAR */
@@ -523,12 +531,12 @@ class ACInfinityCard extends LitElement {
       /* MAIN DISPLAY */
       .main-display {
         display: grid;
-        grid-template-columns: 120px 180px minmax(300px, 1fr) 240px 80px;
-        gap: 24px;
+        grid-template-columns: 110px 180px minmax(400px, 1fr) 180px 90px;
+        gap: 32px;
         padding: 40px 32px;
-        min-height: 450px;
+        min-height: 500px;
         align-items: center;
-        overflow-x: auto;
+        justify-items: center;
       }
       
       /* BUTTONS COLUMN */
@@ -711,11 +719,11 @@ class ACInfinityCard extends LitElement {
         opacity: 0.8;
       }
       
-      .temp-value {
-        font-size: 180px;
-        font-weight: 200;
+            .temp-value {
+        font-size: 220px;
+        font-weight: 100;
         line-height: 0.85;
-        letter-spacing: -12px;
+        letter-spacing: -15px;
         font-family: 'Helvetica Neue', Arial, sans-serif;
       }
       
@@ -747,12 +755,12 @@ class ACInfinityCard extends LitElement {
       }
       
       .reading-value {
-        font-size: 42px;
-        font-weight: 400;
+        font-size: 56px;
+        font-weight: 300;
       }
       
       .reading-unit {
-        font-size: 18px;
+        font-size: 24px;
         color: #999;
       }
       
@@ -790,13 +798,13 @@ class ACInfinityCard extends LitElement {
       }
       
       .value-number {
-        font-size: 32px;
-        font-weight: 400;
+        font-size: 48px;
+        font-weight: 300;
         color: #fff;
       }
       
       .value-unit {
-        font-size: 16px;
+        font-size: 20px;
         color: #888;
       }
       
@@ -825,23 +833,24 @@ class ACInfinityCard extends LitElement {
       }
       
       /* RESPONSIVE */
-      @media (max-width: 1200px) {
-        .ac-infinity-card {
-          min-width: 100%;
-        }
-        
+      @media (max-width: 1300px) {
         .main-display {
-          grid-template-columns: 100px 160px minmax(250px, 1fr) 200px 70px;
-          gap: 16px;
-          padding: 32px 20px;
+          grid-template-columns: 100px 170px minmax(350px, 1fr) 170px 80px;
+          gap: 24px;
+          padding: 36px 24px;
         }
         
         .temp-value {
-          font-size: 140px;
+          font-size: 180px;
+          letter-spacing: -12px;
         }
         
         .value-number {
-          font-size: 28px;
+          font-size: 40px;
+        }
+        
+        .reading-value {
+          font-size: 48px;
         }
       }
       
