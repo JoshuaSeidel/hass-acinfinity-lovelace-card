@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AC Infinity Card Entity Detection Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .instructions {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .entity-input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 15px 0;
+            font-family: monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .button {
+            background: #03a9f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .button:hover {
+            background: #0288d1;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .detected {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .not-detected {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .pattern {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 AC Infinity Card Entity Detection Test</h1>
+    
+    <div class="instructions">
+        <h3>How to use this test:</h3>
+        <ol>
+            <li>Open Home Assistant Developer Tools → States</li>
+            <li>Find your AC Infinity entities (search for your controller name)</li>
+            <li>Copy entity IDs and paste them below (one per line)</li>
+            <li>Click "Test Detection" to see which patterns match</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h3>Enter Your Entity IDs</h3>
+        <p>Paste your entity IDs here, one per line:</p>
+        <textarea id="entityInput" class="entity-input" rows="15" placeholder="Example:
+sensor.grow_tent_tent_temperature
+sensor.grow_tent_tent_humidity
+sensor.grow_tent_tent_vpd
+sensor.grow_tent_built_in_temperature
+sensor.grow_tent_built_in_humidity
+sensor.grow_tent_port_1_state
+sensor.grow_tent_port_2_state
+..."></textarea>
+        
+        <button class="button" onclick="testDetection()">🔍 Test Detection</button>
+        <button class="button" onclick="loadExampleEntities()">📝 Load Example Entities</button>
+        <button class="button" onclick="clearResults()">🗑️ Clear</button>
+    </div>
+
+    <div class="test-section" id="resultsSection" style="display: none;">
+        <h3>Detection Results</h3>
+        <div id="results" class="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Detection Patterns</h3>
+        <p>The card detects entities matching these patterns:</p>
+        <ul>
+            <li><span class="pattern">tent_temperature</span>, <span class="pattern">tent_humidity</span>, <span class="pattern">tent_vpd</span></li>
+            <li><span class="pattern">probe_temperature</span>, <span class="pattern">probe_humidity</span>, <span class="pattern">probe_vpd</span></li>
+            <li><span class="pattern">built_in_temperature</span>, <span class="pattern">built_in_humidity</span>, <span class="pattern">built_in_vpd</span></li>
+            <li><span class="pattern">controller_temperature</span>, <span class="pattern">controller_humidity</span>, <span class="pattern">controller_vpd</span></li>
+            <li><span class="pattern">port_X</span> where X is a number (e.g., <code>port_1</code>, <code>port_2</code>)</li>
+        </ul>
+    </div>
+
+    <script>
+        function testDetection() {
+            const input = document.getElementById('entityInput').value;
+            const entities = input.split('\n').filter(e => e.trim());
+            
+            if (entities.length === 0) {
+                alert('Please enter at least one entity ID');
+                return;
+            }
+
+            let results = '=== Detection Test Results ===\n\n';
+            results += `Testing ${entities.length} entities...\n\n`;
+
+            const detected = [];
+            const notDetected = [];
+
+            entities.forEach(entity => {
+                const entityLower = entity.toLowerCase();
+                const isDetected = checkDetection(entityLower);
+                
+                if (isDetected) {
+                    detected.push({ entity, reason: isDetected });
+                } else {
+                    notDetected.push(entity);
+                }
+            });
+
+            results += `✅ DETECTED (${detected.length}):\n`;
+            results += '─'.repeat(50) + '\n';
+            detected.forEach(item => {
+                results += `  ✓ ${item.entity}\n`;
+                results += `    → Matched: ${item.reason}\n\n`;
+            });
+
+            if (notDetected.length > 0) {
+                results += `\n❌ NOT DETECTED (${notDetected.length}):\n`;
+                results += '─'.repeat(50) + '\n';
+                notDetected.forEach(entity => {
+                    results += `  ✗ ${entity}\n`;
+                });
+                results += '\n⚠️  These entities will not be auto-detected.\n';
+                results += '   Use manual configuration to include them.\n';
+            }
+
+            document.getElementById('results').textContent = results;
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+
+        function checkDetection(entityLower) {
+            if (entityLower.includes('tent_temperature')) return 'tent_temperature pattern';
+            if (entityLower.includes('tent_humidity')) return 'tent_humidity pattern';
+            if (entityLower.includes('tent_vpd')) return 'tent_vpd pattern';
+            if (entityLower.includes('probe_temperature')) return 'probe_temperature pattern';
+            if (entityLower.includes('probe_humidity')) return 'probe_humidity pattern';
+            if (entityLower.includes('probe_vpd')) return 'probe_vpd pattern';
+            if (entityLower.includes('built_in_temperature')) return 'built_in_temperature pattern';
+            if (entityLower.includes('built_in_humidity')) return 'built_in_humidity pattern';
+            if (entityLower.includes('built_in_vpd')) return 'built_in_vpd pattern';
+            if (entityLower.includes('controller_temperature')) return 'controller_temperature pattern';
+            if (entityLower.includes('controller_humidity')) return 'controller_humidity pattern';
+            if (entityLower.includes('controller_vpd')) return 'controller_vpd pattern';
+            if (entityLower.match(/port[_\s]*\d+/)) return 'port_X pattern';
+            
+            return null;
+        }
+
+        function loadExampleEntities() {
+            const examples = `sensor.grow_tent_tent_temperature
+sensor.grow_tent_tent_humidity
+sensor.grow_tent_tent_vpd
+sensor.grow_tent_built_in_temperature
+sensor.grow_tent_built_in_humidity
+sensor.grow_tent_built_in_vpd
+sensor.grow_tent_port_1_state
+sensor.grow_tent_port_1_current_power
+sensor.grow_tent_port_2_state
+sensor.grow_tent_port_2_current_power
+switch.grow_tent_port_1
+switch.grow_tent_port_2`;
+
+            document.getElementById('entityInput').value = examples;
+        }
+
+        function clearResults() {
+            document.getElementById('entityInput').value = '';
+            document.getElementById('results').textContent = '';
+            document.getElementById('resultsSection').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
