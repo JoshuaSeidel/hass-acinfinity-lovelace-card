@@ -117,27 +117,26 @@ The card replicates the AC Infinity A+ Controller display with:
 
 ## Entity Auto-Detection
 
-The card automatically detects entities from the AC Infinity integration by looking for the pattern:
-`domain.name_{MAC_ADDRESS}_type_key`
-
-For example: `sensor.grow_tent_2b120d62dc00_port_1_speak`
+The card automatically detects entities from the AC Infinity integration by checking the `integration` attribute on entities. Any entity with `integration: ac_infinity` will be detected and categorized.
 
 ### Detected Sensors:
 
 - **Probe/Tent Sensors** (Center Display - Primary):
-  - `sensor.*_{MAC}_sensor_*_probe_temperature` or `sensor.*_tent_temperature`
-  - `sensor.*_{MAC}_sensor_*_probe_humidity` or `sensor.*_tent_humidity`
-  - `sensor.*_{MAC}_sensor_*_probe_vpd` or `sensor.*_tent_vpd`
+  - Entities with "tent_temperature", "probe_temperature" in name or friendly name
+  - Entities with "tent_humidity", "probe_humidity" in name or friendly name
+  - Entities with "tent_vpd", "probe_vpd" in name or friendly name
 
 - **Controller Sensors** (Right Side - Secondary):
-  - `sensor.*_{MAC}_controller_temperature` or `sensor.*_built_in_temperature`
-  - `sensor.*_{MAC}_controller_humidity` or `sensor.*_built_in_humidity`
-  - `sensor.*_{MAC}_controller_vpd` or `sensor.*_built_in_vpd`
+  - Entities with "controller_temperature", "built_in_temperature" in name or friendly name
+  - Entities with "controller_humidity", "built_in_humidity" in name or friendly name
+  - Entities with "controller_vpd", "built_in_vpd" in name or friendly name
 
 - **Port Entities** (Left Side):
-  - `binary_sensor.*_{MAC}_port_*_state`
-  - `sensor.*_{MAC}_port_*_speak` (power level)
-  - `select.*_{MAC}_port_*_active_mode`
+  - Binary sensors and switches with "port" and a number
+  - Sensors with "speak", "current_power", or "power" (power level)
+  - Selects with "active_mode" or "mode"
+
+The card groups entities by `device_id` attribute and displays the first detected controller.
 
 ### Manual Configuration
 

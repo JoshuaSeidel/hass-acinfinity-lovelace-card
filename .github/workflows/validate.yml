@@ -17,7 +17,7 @@ jobs:
       - name: HACS validation
         uses: hacs/action@main
         with:
-          category: plugin
+          category: dashboard
 
       - name: Hassfest validation
         uses: home-assistant/actions/hassfest@master

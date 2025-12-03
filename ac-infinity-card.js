@@ -42,25 +42,24 @@ class ACInfinityCard extends HTMLElement {
   _autoDetectEntities() {
     const entities = Object.keys(this._hass.states);
 
-    // Find AC Infinity entities - they follow pattern: domain.xxx_MACADDR_type_key
-    // Example: sensor.grow_tent_2b120d62dc00_port_1_speak
-    const acInfinityPattern = /^(sensor|binary_sensor|number|select|switch|time)\..+_([\dA-Fa-f]{12})_/;
-    
-    const acInfinityEntities = entities.filter(entity => acInfinityPattern.test(entity));
+    // Find AC Infinity entities by checking if integration attribute equals 'ac_infinity'
+    const acInfinityEntities = entities.filter(entity => {
+      const state = this._hass.states[entity];
+      return state && state.attributes && state.attributes.integration === 'ac_infinity';
+    });
 
-    // Group by MAC address (controller)
+    // Group by device_id (controller)
     const controllers = {};
     
     acInfinityEntities.forEach(entity => {
-      const match = entity.match(acInfinityPattern);
-      if (!match) return;
-      
-      const macAddr = match[2].toLowerCase();
       const state = this._hass.states[entity];
       if (!state) return;
+      
+      // Use device_id or entity_id as key for grouping
+      const deviceId = state.attributes?.device_id || 'default';
 
-      if (!controllers[macAddr]) {
-        controllers[macAddr] = {
+      if (!controllers[deviceId]) {
+        controllers[deviceId] = {
           name: this._config.title,
           // Tent/Probe sensors (primary display)
           probe_temperature: null,
@@ -75,38 +74,39 @@ class ACInfinityCard extends HTMLElement {
       }
 
       const entityName = entity.toLowerCase();
+      const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
       
       // Detect probe/tent sensors (main display center)
-      if (entityName.includes('tent_temperature') || (entityName.includes('probe') && entityName.includes('temperature'))) {
-        controllers[macAddr].probe_temperature = entity;
-      } else if (entityName.includes('tent_humidity') || (entityName.includes('probe') && entityName.includes('humidity'))) {
-        controllers[macAddr].probe_humidity = entity;
-      } else if (entityName.includes('tent_vpd') || (entityName.includes('probe') && entityName.includes('vpd'))) {
-        controllers[macAddr].probe_vpd = entity;
+      if (entityName.includes('tent_temperature') || entityName.includes('probe_temperature') || friendlyName.includes('tent temperature') || friendlyName.includes('probe temperature')) {
+        controllers[deviceId].probe_temperature = entity;;
+      } else if (entityName.includes('tent_humidity') || entityName.includes('probe_humidity') || friendlyName.includes('tent humidity') || friendlyName.includes('probe humidity')) {
+        controllers[deviceId].probe_humidity = entity;
+      } else if (entityName.includes('tent_vpd') || entityName.includes('probe_vpd') || friendlyName.includes('tent vpd') || friendlyName.includes('probe vpd')) {
+        controllers[deviceId].probe_vpd = entity;
       }
       // Detect controller sensors (right side display)
-      else if ((entityName.includes('controller_temperature') || entityName.includes('built_in_temperature')) && !entityName.includes('port')) {
-        controllers[macAddr].controller_temperature = entity;
-      } else if ((entityName.includes('controller_humidity') || entityName.includes('built_in_humidity')) && !entityName.includes('port')) {
-        controllers[macAddr].controller_humidity = entity;
-      } else if ((entityName.includes('controller_vpd') || entityName.includes('built_in_vpd')) && !entityName.includes('port')) {
-        controllers[macAddr].controller_vpd = entity;
+      else if ((entityName.includes('controller_temperature') || entityName.includes('built_in_temperature') || friendlyName.includes('controller temperature') || friendlyName.includes('built-in temperature')) && !entityName.includes('port')) {
+        controllers[deviceId].controller_temperature = entity;
+      } else if ((entityName.includes('controller_humidity') || entityName.includes('built_in_humidity') || friendlyName.includes('controller humidity') || friendlyName.includes('built-in humidity')) && !entityName.includes('port')) {
+        controllers[deviceId].controller_humidity = entity;
+      } else if ((entityName.includes('controller_vpd') || entityName.includes('built_in_vpd') || friendlyName.includes('controller vpd') || friendlyName.includes('built-in vpd')) && !entityName.includes('port')) {
+        controllers[deviceId].controller_vpd = entity;
       }
       // Fallback: if no probe sensors, use controller sensors
-      else if (!controllers[macAddr].probe_temperature && entityName.includes('temperature') && !entityName.includes('port')) {
-        controllers[macAddr].probe_temperature = entity;
-      } else if (!controllers[macAddr].probe_humidity && entityName.includes('humidity') && !entityName.includes('port')) {
-        controllers[macAddr].probe_humidity = entity;
-      } else if (!controllers[macAddr].probe_vpd && entityName.includes('vpd') && !entityName.includes('port')) {
-        controllers[macAddr].probe_vpd = entity;
+      else if (!controllers[deviceId].probe_temperature && entityName.includes('temperature') && !entityName.includes('port')) {
+        controllers[deviceId].probe_temperature = entity;
+      } else if (!controllers[deviceId].probe_humidity && entityName.includes('humidity') && !entityName.includes('port')) {
+        controllers[deviceId].probe_humidity = entity;
+      } else if (!controllers[deviceId].probe_vpd && entityName.includes('vpd') && !entityName.includes('port')) {
+        controllers[deviceId].probe_vpd = entity;
       }
       // Port entities
-      else if (entityName.includes('_port_')) {
-        const portMatch = entityName.match(/_port_(\d+)_/);
+      else if (entityName.includes('port') && (entityName.match(/port[_\s]*(\d+)/) || friendlyName.match(/port[_\s]*(\d+)/))) {
+        const portMatch = entityName.match(/port[_\s]*(\d+)/) || friendlyName.match(/port[_\s]*(\d+)/);
         if (portMatch) {
           const portNum = portMatch[1];
-          if (!controllers[macAddr].ports[portNum]) {
-            controllers[macAddr].ports[portNum] = {
+          if (!controllers[deviceId].ports[portNum]) {
+            controllers[deviceId].ports[portNum] = {
               name: state.attributes?.friendly_name || `Port ${portNum}`,
               state: null,
               power: null,
@@ -114,12 +114,12 @@ class ACInfinityCard extends HTMLElement {
             };
           }
           
-          if (entityName.includes('_state')) {
-            controllers[macAddr].ports[portNum].state = entity;
-          } else if (entityName.includes('_speak') || entityName.includes('_current_power')) {
-            controllers[macAddr].ports[portNum].power = entity;
-          } else if (entityName.includes('_active_mode') || entityName.includes('_mode')) {
-            controllers[macAddr].ports[portNum].mode = entity;
+          if (entityName.includes('state')) {
+            controllers[deviceId].ports[portNum].state = entity;
+          } else if (entityName.includes('speak') || entityName.includes('current_power') || entityName.includes('power')) {
+            controllers[deviceId].ports[portNum].power = entity;
+          } else if (entityName.includes('active_mode') || entityName.includes('mode')) {
+            controllers[deviceId].ports[portNum].mode = entity;
           }
         }
       }

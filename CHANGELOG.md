@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [1.0.2] - 2024-12-03
 
 ### Fixed
-- Fixed entity auto-detection to properly identify AC Infinity entities using MAC address pattern
+### Fixed
+- ✅ Entity auto-detection now correctly checks `integration` attribute for 'ac_infinity'
+- ✅ Proper detection of all entities from AC Infinity integration
+- ✅ Corrected entity categorization using friendly names and entity IDs
+- ✅ Fixed HACS validation action to use 'dashboard' category instead of 'plugin'
 - Corrected entity detection pattern to match integration's unique_id format: `ac_infinity_{MAC_ADDR}_*`
 - Fixed entity categorization for probe/tent sensors vs controller sensors
 
