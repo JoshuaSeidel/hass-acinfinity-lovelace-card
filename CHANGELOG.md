@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2024-12-03
+
+### Changed
+- Minor updates and improvements
+
 ## [1.0.0] - 2024-12-02
 
 ### Added
@@ -23,4 +28,5 @@ All notable changes to this project will be documented in this file.
 - Support for multiple controllers
 - Configurable display options
 
+[1.0.1]: https://github.com/JoshuaSeidel/hass-acinfinity-lovelace-card/releases/tag/v1.0.1
 [1.0.0]: https://github.com/JoshuaSeidel/hass-acinfinity-lovelace-card/releases/tag/v1.0.0
