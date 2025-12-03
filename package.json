@@ -1,0 +1,26 @@
+{
+  "name": "ac-infinity-lovelace-card",
+  "version": "1.0.0",
+  "description": "A custom Lovelace card for Home Assistant that replicates the AC Infinity A+ Controller interface",
+  "main": "ac-infinity-card.js",
+  "scripts": {
+    "build": "echo 'No build step required - pure JavaScript'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JoshuaSeidel/hass-acinfinity-lovelace-card.git"
+  },
+  "keywords": [
+    "homeassistant",
+    "lovelace",
+    "custom-card",
+    "ac-infinity",
+    "smart-home"
+  ],
+  "author": "Joshua Seidel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JoshuaSeidel/hass-acinfinity-lovelace-card/issues"
+  },
+  "homepage": "https://github.com/JoshuaSeidel/hass-acinfinity-lovelace-card#readme"
+}
