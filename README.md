@@ -222,6 +222,40 @@ If the card doesn't display correctly:
 - Try clearing browser cache
 - Check for conflicting custom themes
 
+### Card Shows "No entities found"
+
+1. **Check your integration is working:**
+   - Go to Settings → Devices & Services → AC Infinity
+   - Verify your controller appears and has entities
+
+2. **Check entity names in Developer Tools:**
+   - Go to Developer Tools → States
+   - Search for your entities (e.g., `sensor.grow_tent_tent_temperature`)
+   - The card looks for these patterns:
+     - `tent_temperature`, `tent_humidity`, `tent_vpd`
+     - `probe_temperature`, `probe_humidity`, `probe_vpd`  
+     - `built_in_temperature`, `built_in_humidity`, `built_in_vpd`
+     - `controller_temperature`, `controller_humidity`, `controller_vpd`
+     - `port_1`, `port_2`, etc.
+
+3. **Check browser console for errors:**
+   - Press F12 to open browser console
+   - Look for "AC Infinity entities found:" message
+   - This will show what entities were detected
+
+4. **Manual configuration:**
+   If auto-detection doesn't work, you can manually specify entities:
+   ```yaml
+   type: custom:ac-infinity-card
+   title: My Controller
+   auto_detect: false
+   probe_temp_entity: sensor.grow_tent_tent_temperature
+   probe_humidity_entity: sensor.grow_tent_tent_humidity
+   probe_vpd_entity: sensor.grow_tent_tent_vpd
+   controller_temp_entity: sensor.grow_tent_built_in_temperature
+   controller_humidity_entity: sensor.grow_tent_built_in_humidity
+   ```
+
 ## Development
 
 To contribute or modify the card:
@@ -255,12 +289,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.0.2 (2024-12-03)
-- Fixed entity auto-detection using correct MAC address pattern
-- Complete UI redesign to match AC Infinity A+ Controller
-- Added manual entity configuration support
-- Improved probe/tent vs controller sensor detection
-- Enhanced visual editor
+See [CHANGELOG.md](CHANGELOG.md) for full version history.
+
+### Latest (v1.0.5 - 2024-12-03)
+- Fixed entity auto-detection to properly identify AC Infinity entities
+- Improved pattern matching for entity names
+- Better documentation for troubleshooting
+
+### v1.0.4 (2024-12-03)
+- Complete visual redesign matching AC Infinity A+ Controller hardware
+- All 8 ports displayed with color-coded status
+- Enhanced sensor display with proper icons
+- Improved layout and spacing
 
 ### v1.0.0 (2024-12-02)
 - Initial release
