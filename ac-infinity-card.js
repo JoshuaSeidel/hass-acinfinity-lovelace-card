@@ -523,11 +523,12 @@ class ACInfinityCard extends LitElement {
       /* MAIN DISPLAY */
       .main-display {
         display: grid;
-        grid-template-columns: 120px 180px 1fr 240px 80px;
+        grid-template-columns: 120px 180px minmax(300px, 1fr) 240px 80px;
         gap: 24px;
         padding: 40px 32px;
         min-height: 450px;
         align-items: center;
+        overflow-x: auto;
       }
       
       /* BUTTONS COLUMN */
@@ -824,35 +825,133 @@ class ACInfinityCard extends LitElement {
       }
       
       /* RESPONSIVE */
-      @media (max-width: 1024px) {
+      @media (max-width: 1200px) {
         .ac-infinity-card {
           min-width: 100%;
         }
         
         .main-display {
-          grid-template-columns: 180px 1fr 260px;
-          gap: 24px;
-          padding: 24px 16px;
+          grid-template-columns: 100px 160px minmax(250px, 1fr) 200px 70px;
+          gap: 16px;
+          padding: 32px 20px;
         }
         
         .temp-value {
           font-size: 140px;
         }
+        
+        .value-number {
+          font-size: 28px;
+        }
       }
       
-      @media (max-width: 768px) {
+      @media (max-width: 1024px) {
         .main-display {
-          grid-template-columns: 1fr;
-          gap: 32px;
+          grid-template-columns: 90px 140px minmax(200px, 1fr) 180px 60px;
+          gap: 12px;
+          padding: 24px 16px;
         }
         
-        .left-section,
-        .right-section {
-          align-items: center;
+        .port-button,
+        .mode-button,
+        .setting-button {
+          width: 48px;
+          height: 48px;
+          font-size: 18px;
+        }
+        
+        .updown-button {
+          width: 50px;
+          height: 80px;
+          font-size: 20px;
         }
         
         .temp-value {
           font-size: 120px;
+        }
+        
+        .value-number {
+          font-size: 24px;
+        }
+        
+        .button-label {
+          font-size: 7px;
+        }
+      }
+      
+      @media (max-width: 900px) {
+        .main-display {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto auto;
+          gap: 24px;
+          padding: 24px 16px;
+          align-items: start;
+        }
+        
+        .buttons-column {
+          flex-direction: row;
+          gap: 16px;
+          justify-content: center;
+          width: 100%;
+        }
+        
+        .ports-column {
+          width: 100%;
+        }
+        
+        .center-section {
+          width: 100%;
+        }
+        
+        .right-values-column {
+          width: 100%;
+          align-items: center;
+          gap: 16px;
+        }
+        
+        .value-row {
+          justify-content: center;
+        }
+        
+        .updown-column {
+          width: 100%;
+          justify-content: center;
+        }
+        
+        .temp-value {
+          font-size: 100px;
+        }
+        
+        .value-number {
+          font-size: 32px;
+        }
+      }
+      
+      @media (max-width: 600px) {
+        .ac-infinity-card {
+          border-radius: 8px;
+        }
+        
+        .main-display {
+          padding: 20px 12px;
+          gap: 20px;
+        }
+        
+        .temp-value {
+          font-size: 80px;
+        }
+        
+        .reading-value {
+          font-size: 32px;
+        }
+        
+        .value-number {
+          font-size: 28px;
+        }
+        
+        .port-item {
+          padding: 6px 10px;
+          font-size: 12px;
         }
       }
     `;
@@ -887,7 +986,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.6 ',
+  '%c AC-INFINITY-CARD %c Version 1.0.7 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
