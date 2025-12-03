@@ -62,7 +62,7 @@ class ACInfinityCard extends LitElement {
 
     const entities = Object.keys(this._hass.states);
     
-    // Find ALL AC Infinity entities
+    // Find ALL AC Infinity entities with detailed logging
     let acInfinityEntities = entities.filter(entity => {
       const state = this._hass.states[entity];
       if (!state) return false;
@@ -70,20 +70,29 @@ class ACInfinityCard extends LitElement {
       const entityLower = entity.toLowerCase();
       const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
       
+      // Check if this is a potential port entity for debugging
+      const isPotentialPortEntity = entityLower.includes('port') || friendlyName.includes('port');
+      
       // Exclude non-AC Infinity entities - but check friendly name too to avoid false positives
       const excludePatterns = ['import', 'export', 'billing', 'grid'];
       if (excludePatterns.some(pattern => entityLower.includes(pattern) || friendlyName.includes(pattern))) {
+        if (isPotentialPortEntity) {
+          console.log(`Excluded ${entity} due to pattern match:`, excludePatterns.find(p => entityLower.includes(p) || friendlyName.includes(p)));
+        }
         return false;
       }
       
       // Also exclude cloud/alexa/google but only if they're clearly not AC Infinity port entities
       if ((entityLower.includes('cloud') || entityLower.includes('alexa') || entityLower.includes('google')) 
-          && !entityLower.includes('port_')) {
+          && !entityLower.includes('port_') && !friendlyName.includes('port')) {
+        if (isPotentialPortEntity) {
+          console.log(`Excluded ${entity} due to cloud/alexa/google pattern`);
+        }
         return false;
       }
       
       // Include any entity with tent/controller/probe patterns OR port patterns
-      return (
+      const shouldInclude = (
         entityLower.includes('_tent_temperature') ||
         entityLower.includes('_tent_humidity') ||
         entityLower.includes('_tent_vpd') ||
@@ -93,6 +102,7 @@ class ACInfinityCard extends LitElement {
         entityLower.includes('controller_vpd') ||
         entityLower.includes('port_number') ||
         entityLower.includes('port_status') ||
+        entityLower.includes('_port_') ||
         entityLower.includes('connected_device_type') ||
         entityLower.includes('device_type') ||
         entityLower.includes('current_power') ||
@@ -107,6 +117,12 @@ class ACInfinityCard extends LitElement {
         friendlyName.includes('connected device type') ||
         friendlyName.includes('current power')
       );
+      
+      if (isPotentialPortEntity && !shouldInclude) {
+        console.log(`Port entity ${entity} not included - no pattern match. Friendly name: ${state.attributes?.friendly_name}`);
+      }
+      
+      return shouldInclude;
     });
 
     console.log('AC Infinity entities found:', acInfinityEntities);
@@ -1157,7 +1173,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.21 ',
+  '%c AC-INFINITY-CARD %c Version 1.0.22 - DEBUG BUILD ',
   'color: white; background: #000; font-weight: bold;',
-  'color: white; background: #4CAF50; font-weight: bold;'
+  'color: yellow; background: #f44336; font-weight: bold;'
 );
