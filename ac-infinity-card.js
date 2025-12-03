@@ -15,9 +15,14 @@ class ACInfinityCard extends HTMLElement {
     this._config = {
       title: config.title || 'AC Infinity Controller',
       show_ports: config.show_ports !== false,
-      show_sensors: config.show_sensors !== false,
       auto_detect: config.auto_detect !== false,
-      entity: config.entity,
+      // Manual entity configuration
+      probe_temp_entity: config.probe_temp_entity || null,
+      probe_humidity_entity: config.probe_humidity_entity || null,
+      probe_vpd_entity: config.probe_vpd_entity || null,
+      controller_temp_entity: config.controller_temp_entity || null,
+      controller_humidity_entity: config.controller_humidity_entity || null,
+      controller_vpd_entity: config.controller_vpd_entity || null,
       ...config
     };
     
@@ -35,71 +40,86 @@ class ACInfinityCard extends HTMLElement {
   }
 
   _autoDetectEntities() {
-    const entities = Object.keys(this._hass.states).filter(entity => 
-      entity.startsWith('sensor.') || 
-      entity.startsWith('switch.') || 
-      entity.startsWith('number.') ||
-      entity.startsWith('select.') ||
-      entity.startsWith('binary_sensor.')
-    );
+    const entities = Object.keys(this._hass.states);
 
-    // Find AC Infinity entities
-    const acInfinityEntities = entities.filter(entity => {
-      const domain = entity.split('.')[0];
-      const entityId = entity.split('.')[1];
-      return entityId.includes('ac_infinity') || 
-             (this._hass.states[entity]?.attributes?.integration === 'ac_infinity');
-    });
+    // Find AC Infinity entities - they follow pattern: domain.xxx_MACADDR_type_key
+    // Example: sensor.grow_tent_2b120d62dc00_port_1_speak
+    const acInfinityPattern = /^(sensor|binary_sensor|number|select|switch|time)\..+_([\dA-Fa-f]{12})_/;
+    
+    const acInfinityEntities = entities.filter(entity => acInfinityPattern.test(entity));
 
-    // Organize entities by controller
+    // Group by MAC address (controller)
     const controllers = {};
     
     acInfinityEntities.forEach(entity => {
+      const match = entity.match(acInfinityPattern);
+      if (!match) return;
+      
+      const macAddr = match[2].toLowerCase();
       const state = this._hass.states[entity];
       if (!state) return;
 
-      const deviceId = state.attributes?.device_id;
-      if (!deviceId) return;
-
-      if (!controllers[deviceId]) {
-        controllers[deviceId] = {
-          name: state.attributes?.friendly_name?.split(' ')[0] || 'Controller',
-          temperature: null,
-          humidity: null,
-          vpd: null,
-          mode: null,
+      if (!controllers[macAddr]) {
+        controllers[macAddr] = {
+          name: this._config.title,
+          // Tent/Probe sensors (primary display)
+          probe_temperature: null,
+          probe_humidity: null,
+          probe_vpd: null,
+          // Controller sensors (right side display)
+          controller_temperature: null,
+          controller_humidity: null,
+          controller_vpd: null,
           ports: {}
         };
       }
 
-      // Categorize entities
       const entityName = entity.toLowerCase();
       
-      if (entityName.includes('temperature') && !entityName.includes('port')) {
-        controllers[deviceId].temperature = entity;
-      } else if (entityName.includes('humidity') && !entityName.includes('port')) {
-        controllers[deviceId].humidity = entity;
-      } else if (entityName.includes('vpd') && !entityName.includes('port')) {
-        controllers[deviceId].vpd = entity;
-      } else if (entityName.includes('port_')) {
-        const portMatch = entityName.match(/port_(\d+)/);
+      // Detect probe/tent sensors (main display center)
+      if (entityName.includes('tent_temperature') || (entityName.includes('probe') && entityName.includes('temperature'))) {
+        controllers[macAddr].probe_temperature = entity;
+      } else if (entityName.includes('tent_humidity') || (entityName.includes('probe') && entityName.includes('humidity'))) {
+        controllers[macAddr].probe_humidity = entity;
+      } else if (entityName.includes('tent_vpd') || (entityName.includes('probe') && entityName.includes('vpd'))) {
+        controllers[macAddr].probe_vpd = entity;
+      }
+      // Detect controller sensors (right side display)
+      else if ((entityName.includes('controller_temperature') || entityName.includes('built_in_temperature')) && !entityName.includes('port')) {
+        controllers[macAddr].controller_temperature = entity;
+      } else if ((entityName.includes('controller_humidity') || entityName.includes('built_in_humidity')) && !entityName.includes('port')) {
+        controllers[macAddr].controller_humidity = entity;
+      } else if ((entityName.includes('controller_vpd') || entityName.includes('built_in_vpd')) && !entityName.includes('port')) {
+        controllers[macAddr].controller_vpd = entity;
+      }
+      // Fallback: if no probe sensors, use controller sensors
+      else if (!controllers[macAddr].probe_temperature && entityName.includes('temperature') && !entityName.includes('port')) {
+        controllers[macAddr].probe_temperature = entity;
+      } else if (!controllers[macAddr].probe_humidity && entityName.includes('humidity') && !entityName.includes('port')) {
+        controllers[macAddr].probe_humidity = entity;
+      } else if (!controllers[macAddr].probe_vpd && entityName.includes('vpd') && !entityName.includes('port')) {
+        controllers[macAddr].probe_vpd = entity;
+      }
+      // Port entities
+      else if (entityName.includes('_port_')) {
+        const portMatch = entityName.match(/_port_(\d+)_/);
         if (portMatch) {
           const portNum = portMatch[1];
-          if (!controllers[deviceId].ports[portNum]) {
-            controllers[deviceId].ports[portNum] = {
-              name: `Port ${portNum}`,
+          if (!controllers[macAddr].ports[portNum]) {
+            controllers[macAddr].ports[portNum] = {
+              name: state.attributes?.friendly_name || `Port ${portNum}`,
               state: null,
               power: null,
               mode: null
             };
           }
           
-          if (entityName.includes('state')) {
-            controllers[deviceId].ports[portNum].state = entity;
-          } else if (entityName.includes('power') || entityName.includes('speak')) {
-            controllers[deviceId].ports[portNum].power = entity;
-          } else if (entityName.includes('active_mode')) {
-            controllers[deviceId].ports[portNum].mode = entity;
+          if (entityName.includes('_state')) {
+            controllers[macAddr].ports[portNum].state = entity;
+          } else if (entityName.includes('_speak') || entityName.includes('_current_power')) {
+            controllers[macAddr].ports[portNum].power = entity;
+          } else if (entityName.includes('_active_mode') || entityName.includes('_mode')) {
+            controllers[macAddr].ports[portNum].mode = entity;
           }
         }
       }
@@ -118,57 +138,70 @@ class ACInfinityCard extends HTMLElement {
     return this._hass.states[entityId].attributes?.[attribute];
   }
 
-  _formatValue(value, unit = '') {
-    if (value === 'N/A' || value === 'unavailable' || value === 'unknown') return '--';
+  _formatValue(value, decimals = 0) {
+    if (value === 'N/A' || value === 'unavailable' || value === 'unknown' || value === null) return '--';
     const numValue = parseFloat(value);
-    if (isNaN(numValue)) return value;
-    return `${Math.round(numValue)}${unit}`;
+    if (isNaN(numValue)) return '--';
+    return decimals > 0 ? numValue.toFixed(decimals) : Math.round(numValue);
   }
 
-  _handlePortClick(portEntity) {
-    if (!portEntity) return;
+  _handleEntityClick(entityId) {
+    if (!entityId) return;
     
     const event = new Event('hass-more-info', {
       bubbles: true,
       composed: true,
       cancelable: false,
     });
-    event.detail = { entityId: portEntity };
+    event.detail = { entityId: entityId };
     this.dispatchEvent(event);
-  }
-
-  _handleSettingsClick() {
-    // Open more info for the controller
-    const firstController = Object.values(this._entities)[0];
-    if (firstController?.temperature) {
-      this._handlePortClick(firstController.temperature);
-    }
   }
 
   render() {
     if (!this.shadowRoot) return;
 
-    const firstController = Object.values(this._entities)[0] || {};
-    const temperature = this._getEntityState(firstController.temperature);
-    const humidity = this._getEntityState(firstController.humidity);
-    const vpd = this._getEntityState(firstController.vpd);
-    const ports = firstController.ports || {};
+    // Use manual config if provided, otherwise use first auto-detected controller
+    let controller;
+    if (this._config.probe_temp_entity) {
+      controller = {
+        probe_temperature: this._config.probe_temp_entity,
+        probe_humidity: this._config.probe_humidity_entity,
+        probe_vpd: this._config.probe_vpd_entity,
+        controller_temperature: this._config.controller_temp_entity,
+        controller_humidity: this._config.controller_humidity_entity,
+        controller_vpd: this._config.controller_vpd_entity,
+        ports: {}
+      };
+    } else {
+      controller = Object.values(this._entities)[0] || {};
+    }
+
+    const probeTemp = this._formatValue(this._getEntityState(controller.probe_temperature));
+    const probeHumidity = this._formatValue(this._getEntityState(controller.probe_humidity));
+    const probeVpd = this._formatValue(this._getEntityState(controller.probe_vpd), 2);
+    
+    const controllerTemp = this._formatValue(this._getEntityState(controller.controller_temperature));
+    const controllerHumidity = this._formatValue(this._getEntityState(controller.controller_humidity));
+    const controllerVpd = this._formatValue(this._getEntityState(controller.controller_vpd), 1);
+    
+    const ports = controller.ports || {};
 
     this.shadowRoot.innerHTML = `
       <style>
         * {
           box-sizing: border-box;
+          margin: 0;
+          padding: 0;
         }
         
         :host {
           display: block;
-          font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .ac-infinity-card {
-          background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+          background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
           border-radius: 8px;
-          padding: 0;
           position: relative;
           overflow: hidden;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -179,7 +212,7 @@ class ACInfinityCard extends HTMLElement {
           justify-content: space-between;
           align-items: center;
           padding: 16px 20px;
-          border-bottom: 1px solid #2a2a2a;
+          border-bottom: 1px solid #222;
         }
         
         .ai-badge {
@@ -188,77 +221,77 @@ class ACInfinityCard extends HTMLElement {
           gap: 8px;
           color: #fff;
           font-weight: 600;
-          font-size: 18px;
+          font-size: 16px;
         }
         
         .ai-icon {
-          width: 24px;
-          height: 24px;
+          width: 32px;
+          height: 20px;
           border: 2px solid #fff;
-          border-radius: 4px;
+          border-radius: 3px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 14px;
+          font-size: 12px;
           font-weight: bold;
+          padding: 2px 4px;
         }
         
         .status-icons {
           display: flex;
           gap: 16px;
+          align-items: center;
           color: #999;
         }
         
-        .icon {
-          font-size: 20px;
-          cursor: pointer;
-          transition: color 0.2s;
-        }
-        
-        .icon:hover {
+        .time-display {
+          font-size: 16px;
           color: #fff;
+          font-weight: 300;
+          letter-spacing: 1px;
         }
         
         .main-display {
-          display: flex;
-          padding: 24px 20px;
-          gap: 20px;
-          align-items: center;
-          justify-content: space-between;
+          display: grid;
+          grid-template-columns: 200px 1fr 200px;
+          padding: 32px 20px;
+          gap: 24px;
+          align-items: start;
+          min-height: 280px;
         }
         
         .left-section {
-          flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 8px;
         }
         
         .ports-list {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 4px;
         }
         
         .port-item {
           display: flex;
           align-items: center;
-          gap: 12px;
-          color: #999;
-          font-size: 13px;
-          padding: 4px 0;
+          gap: 10px;
+          color: #fff;
+          font-size: 14px;
+          padding: 6px 0;
           cursor: pointer;
-          transition: color 0.2s;
+          transition: opacity 0.2s;
         }
         
         .port-item:hover {
-          color: #fff;
+          opacity: 0.8;
         }
         
         .port-number {
-          color: #666;
-          font-weight: 600;
+          color: #999;
+          font-weight: 500;
           min-width: 12px;
+          font-size: 13px;
         }
         
         .port-icon {
@@ -268,33 +301,63 @@ class ACInfinityCard extends HTMLElement {
         
         .port-value {
           font-weight: 500;
-          min-width: 32px;
+          min-width: 40px;
+          color: #fff;
         }
         
         .port-off {
-          color: #444;
+          opacity: 0.3;
         }
         
         .center-display {
-          flex: 2;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 8px;
+          justify-content: center;
+          gap: 16px;
         }
         
         .temperature-display {
-          font-size: 96px;
+          font-size: 120px;
           font-weight: 200;
           color: #fff;
           line-height: 1;
-          letter-spacing: -4px;
+          letter-spacing: -6px;
+          font-family: 'Helvetica Neue', Arial, sans-serif;
+          cursor: pointer;
         }
         
         .temp-unit {
-          font-size: 32px;
+          font-size: 36px;
           vertical-align: super;
-          margin-left: -8px;
+          margin-left: -4px;
+          font-weight: 300;
+        }
+        
+        .probe-values {
+          display: flex;
+          gap: 32px;
+          align-items: center;
+          justify-content: center;
+          margin-top: 8px;
+        }
+        
+        .probe-value {
+          display: flex;
+          align-items: baseline;
+          gap: 4px;
+          cursor: pointer;
+        }
+        
+        .probe-number {
+          font-size: 32px;
+          color: #fff;
+          font-weight: 400;
+        }
+        
+        .probe-unit {
+          font-size: 16px;
+          color: #999;
         }
         
         .mode-status {
@@ -302,63 +365,46 @@ class ACInfinityCard extends HTMLElement {
           align-items: center;
           gap: 12px;
           color: #999;
-          font-size: 13px;
-          margin-top: 8px;
+          font-size: 14px;
+          margin-top: 4px;
         }
         
         .mode-badge {
           color: #fff;
           font-weight: 600;
+          font-size: 13px;
+          letter-spacing: 0.5px;
         }
         
-        .high-temp-indicator {
-          color: #ff6b6b;
-          font-weight: 600;
+        .status-indicator {
+          font-size: 13px;
         }
         
         .right-section {
-          flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 20px;
           align-items: flex-end;
-        }
-        
-        .time-display {
-          font-size: 24px;
-          color: #fff;
-          font-weight: 300;
         }
         
         .climate-values {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 14px;
           text-align: right;
-        }
-        
-        .climate-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          justify-content: flex-end;
-        }
-        
-        .climate-icon {
-          font-size: 20px;
-          color: #666;
         }
         
         .climate-value {
           font-size: 20px;
           color: #fff;
-          font-weight: 500;
-          min-width: 60px;
+          font-weight: 400;
+          cursor: pointer;
         }
         
         .climate-unit {
           font-size: 14px;
           color: #999;
+          margin-left: 2px;
         }
         
         .set-to-section {
@@ -366,19 +412,20 @@ class ACInfinityCard extends HTMLElement {
           flex-direction: column;
           align-items: flex-end;
           gap: 4px;
-          margin-top: 8px;
+          margin-top: 12px;
         }
         
         .set-to-label {
-          font-size: 11px;
+          font-size: 10px;
           color: #666;
           text-transform: uppercase;
+          letter-spacing: 1px;
         }
         
         .set-to-value {
-          font-size: 32px;
+          font-size: 40px;
           color: #fff;
-          font-weight: 400;
+          font-weight: 300;
         }
         
         .footer {
@@ -386,7 +433,7 @@ class ACInfinityCard extends HTMLElement {
           justify-content: center;
           align-items: center;
           padding: 12px 20px;
-          border-top: 1px solid #2a2a2a;
+          border-top: 1px solid #222;
         }
         
         .brand {
@@ -394,20 +441,23 @@ class ACInfinityCard extends HTMLElement {
           align-items: center;
           gap: 8px;
           color: #666;
-          font-size: 12px;
+          font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 2px;
+          font-weight: 500;
         }
         
-        .brand-logo {
-          font-size: 16px;
-          font-weight: bold;
+        .brand-divider {
+          width: 1px;
+          height: 12px;
+          background: #333;
         }
         
         .control-buttons {
           position: absolute;
           left: 20px;
-          bottom: 20px;
+          top: 50%;
+          transform: translateY(-50%);
           display: flex;
           flex-direction: column;
           gap: 16px;
@@ -417,53 +467,70 @@ class ACInfinityCard extends HTMLElement {
           width: 44px;
           height: 44px;
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.05);
+          background: rgba(255, 255, 255, 0.03);
           border: 1px solid #333;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          color: #999;
+          color: #666;
           transition: all 0.2s;
         }
         
         .control-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
-          color: #fff;
-          border-color: #666;
+          background: rgba(255, 255, 255, 0.08);
+          color: #999;
+          border-color: #555;
         }
         
         .menu-icon {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 3px;
         }
         
         .menu-line {
-          width: 18px;
+          width: 16px;
           height: 2px;
           background: currentColor;
           border-radius: 1px;
         }
         
         .settings-icon {
-          font-size: 20px;
+          font-size: 18px;
         }
         
         @media (max-width: 768px) {
           .main-display {
-            flex-direction: column;
-            padding: 16px;
+            grid-template-columns: 1fr;
+            grid-template-rows: auto auto auto;
+            padding: 24px 16px;
+            gap: 24px;
+          }
+          
+          .left-section {
+            order: 3;
+          }
+          
+          .center-display {
+            order: 1;
+          }
+          
+          .right-section {
+            order: 2;
+            align-items: center;
           }
           
           .temperature-display {
-            font-size: 72px;
+            font-size: 96px;
           }
           
-          .left-section,
-          .right-section {
-            width: 100%;
-            align-items: center;
+          .control-buttons {
+            position: static;
+            transform: none;
+            flex-direction: row;
+            padding: 16px;
+            justify-content: center;
           }
         }
       </style>
@@ -475,36 +542,36 @@ class ACInfinityCard extends HTMLElement {
             <span>${this._config.title}</span>
           </div>
           <div class="status-icons">
-            <span class="icon">📶</span>
-            <span class="icon">☁️</span>
-            <span class="time-display">${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+            <span style="font-size: 18px;">📶</span>
+            <span style="font-size: 18px;">☁️</span>
+            <span class="time-display">${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()}</span>
           </div>
         </div>
         
         <div class="control-buttons">
-          <div class="control-btn">
+          <div class="control-btn" id="menu-btn">
             <div class="menu-icon">
               <div class="menu-line"></div>
               <div class="menu-line"></div>
               <div class="menu-line"></div>
             </div>
           </div>
-          <div class="control-btn" @click="${() => this._handleSettingsClick()}">
-            <span class="settings-icon">⚙️</span>
+          <div class="control-btn" id="settings-btn">
+            <span class="settings-icon">⚙</span>
           </div>
         </div>
         
         <div class="main-display">
           <div class="left-section">
             <div class="ports-list">
-              ${Object.keys(ports).sort().map(portNum => {
+              ${Object.keys(ports).sort((a, b) => parseInt(a) - parseInt(b)).map(portNum => {
                 const port = ports[portNum];
                 const state = this._getEntityState(port.state);
                 const power = this._getEntityState(port.power);
-                const isOn = state === 'on' || (power && power !== '0' && power !== 'off');
+                const isOn = state === 'on' || (power && power !== '0' && power !== 'off' && power !== 'unavailable');
                 
                 return `
-                  <div class="port-item ${isOn ? '' : 'port-off'}" @click="${() => this._handlePortClick(port.state)}">
+                  <div class="port-item ${isOn ? '' : 'port-off'}" data-entity="${port.state || port.power || ''}">
                     <span class="port-number">${portNum}</span>
                     <span class="port-icon">🔌</span>
                     <span class="port-value">${isOn ? this._formatValue(power) : 'OFF'}</span>
@@ -515,70 +582,65 @@ class ACInfinityCard extends HTMLElement {
           </div>
           
           <div class="center-display">
-            <div class="temperature-display">
-              ${this._formatValue(temperature)}<span class="temp-unit">°F</span>
+            <div class="temperature-display" data-entity="${controller.probe_temperature || ''}">
+              ${probeTemp}<span class="temp-unit">°F</span>
+            </div>
+            <div class="probe-values">
+              <div class="probe-value" data-entity="${controller.probe_humidity || ''}">
+                <span class="probe-number">${probeHumidity}</span>
+                <span class="probe-unit">%</span>
+              </div>
+              <div class="probe-value" data-entity="${controller.probe_vpd || ''}">
+                <span class="probe-number">${probeVpd}</span>
+                <span class="probe-unit">kPa</span>
+              </div>
             </div>
             <div class="mode-status">
               <span class="mode-badge">AUTO</span>
-              <span>• HIGH TEMP</span>
+              <span class="status-indicator">• HIGH TEMP</span>
             </div>
           </div>
           
           <div class="right-section">
             <div class="climate-values">
-              <div class="climate-item">
-                <span class="climate-icon">💧</span>
-                <div>
-                  <span class="climate-value">${this._formatValue(humidity)}<span class="climate-unit">%</span></span>
-                </div>
+              <div class="climate-value" data-entity="${controller.controller_temperature || ''}">
+                ${controllerTemp}<span class="climate-unit">°F</span>
               </div>
-              <div class="climate-item">
-                <span class="climate-icon">🌡️</span>
-                <div>
-                  <span class="climate-value">${this._formatValue(temperature)}<span class="climate-unit">°F</span></span>
-                </div>
+              <div class="climate-value" data-entity="${controller.controller_humidity || ''}">
+                ${controllerHumidity}<span class="climate-unit">%</span>
               </div>
-              <div class="climate-item">
-                <span class="climate-icon">💨</span>
-                <div>
-                  <span class="climate-value">${this._formatValue(humidity)}<span class="climate-unit">%</span></span>
-                </div>
-              </div>
-              <div class="climate-item">
-                <span class="climate-icon">📊</span>
-                <div>
-                  <span class="climate-value">${this._formatValue(vpd)}<span class="climate-unit">kPa</span></span>
-                </div>
+              <div class="climate-value" data-entity="${controller.controller_vpd || ''}">
+                ${controllerVpd}<span class="climate-unit">kPa</span>
               </div>
             </div>
             <div class="set-to-section">
               <span class="set-to-label">SET TO</span>
-              <span class="set-to-value">${this._formatValue(temperature, '')}</span>
+              <span class="set-to-value">${probeTemp}</span>
             </div>
           </div>
         </div>
         
         <div class="footer">
           <div class="brand">
-            <span class="brand-logo">▲</span>
+            <div class="brand-divider"></div>
             <span>AC INFINITY</span>
+            <div class="brand-divider"></div>
           </div>
         </div>
       </div>
     `;
     
-    // Add event listeners
-    this.shadowRoot.querySelectorAll('.port-item').forEach((item, index) => {
-      const portNum = Object.keys(ports).sort()[index];
-      const port = ports[portNum];
-      if (port?.state) {
-        item.addEventListener('click', () => this._handlePortClick(port.state));
+    // Add event listeners for clickable elements
+    this.shadowRoot.querySelectorAll('[data-entity]').forEach(element => {
+      const entityId = element.getAttribute('data-entity');
+      if (entityId && entityId !== '') {
+        element.addEventListener('click', () => this._handleEntityClick(entityId));
       }
     });
     
-    const settingsBtn = this.shadowRoot.querySelector('.control-btn:last-child');
-    if (settingsBtn) {
-      settingsBtn.addEventListener('click', () => this._handleSettingsClick());
+    const settingsBtn = this.shadowRoot.querySelector('#settings-btn');
+    if (settingsBtn && controller.probe_temperature) {
+      settingsBtn.addEventListener('click', () => this._handleEntityClick(controller.probe_temperature));
     }
   }
 
@@ -594,8 +656,7 @@ class ACInfinityCard extends HTMLElement {
     return {
       title: 'AC Infinity Controller',
       auto_detect: true,
-      show_ports: true,
-      show_sensors: true
+      show_ports: true
     };
   }
 }
@@ -613,7 +674,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.0 ',
+  '%c AC-INFINITY-CARD %c Version 1.0.2 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );

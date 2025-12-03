@@ -117,14 +117,31 @@ The card replicates the AC Infinity A+ Controller display with:
 
 ## Entity Auto-Detection
 
-The card automatically detects entities from the AC Infinity integration:
+The card automatically detects entities from the AC Infinity integration by looking for the pattern:
+`domain.name_{MAC_ADDRESS}_type_key`
 
-- **Temperature Sensors**: `sensor.*_temperature`, `sensor.*_tent_temperature`, `sensor.*_controller_temperature`
-- **Humidity Sensors**: `sensor.*_humidity`, `sensor.*_tent_humidity`
-- **VPD Sensors**: `sensor.*_vpd`, `sensor.*_tent_vpd`
-- **Port Entities**: `sensor.*_port_*`, `binary_sensor.*_port_*`, `switch.*_port_*`
-- **Port Power**: `sensor.*_port_*_speak`, `sensor.*_port_*_current_power`
-- **Port Mode**: `select.*_port_*_active_mode`
+For example: `sensor.grow_tent_2b120d62dc00_port_1_speak`
+
+### Detected Sensors:
+
+- **Probe/Tent Sensors** (Center Display - Primary):
+  - `sensor.*_{MAC}_sensor_*_probe_temperature` or `sensor.*_tent_temperature`
+  - `sensor.*_{MAC}_sensor_*_probe_humidity` or `sensor.*_tent_humidity`
+  - `sensor.*_{MAC}_sensor_*_probe_vpd` or `sensor.*_tent_vpd`
+
+- **Controller Sensors** (Right Side - Secondary):
+  - `sensor.*_{MAC}_controller_temperature` or `sensor.*_built_in_temperature`
+  - `sensor.*_{MAC}_controller_humidity` or `sensor.*_built_in_humidity`
+  - `sensor.*_{MAC}_controller_vpd` or `sensor.*_built_in_vpd`
+
+- **Port Entities** (Left Side):
+  - `binary_sensor.*_{MAC}_port_*_state`
+  - `sensor.*_{MAC}_port_*_speak` (power level)
+  - `select.*_{MAC}_port_*_active_mode`
+
+### Manual Configuration
+
+If auto-detection doesn't work, you can manually configure entities in the visual editor.
 
 ## Examples
 
@@ -211,6 +228,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Interface inspired by the AC Infinity A+ Controller
 
 ## Changelog
+
+### v1.0.2 (2024-12-03)
+- Fixed entity auto-detection using correct MAC address pattern
+- Complete UI redesign to match AC Infinity A+ Controller
+- Added manual entity configuration support
+- Improved probe/tent vs controller sensor detection
+- Enhanced visual editor
 
 ### v1.0.0 (2024-12-02)
 - Initial release
