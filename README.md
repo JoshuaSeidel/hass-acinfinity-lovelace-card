@@ -28,19 +28,26 @@ A custom Lovelace card for Home Assistant that replicates the AC Infinity A+ Con
 
 This card requires the [AC Infinity Home Assistant Integration](https://github.com/JoshuaSeidel/homeassistant-acinfinity) to be installed and configured.
 
+## Requirements
+
+- Home Assistant 2023.1 or newer
+- [AC Infinity Integration](https://github.com/JoshuaSeidel/homeassistant-acinfinity) installed and configured
+- AC Infinity A+ Controller with entities created in Home Assistant
+
 ## Installation
 
-### HACS (Recommended)
+### Via HACS (Recommended)
 
-1. Open HACS in Home Assistant
+1. Open HACS in your Home Assistant instance
 2. Click on "Frontend"
-3. Click the three dots in the top right corner
+3. Click the menu (three dots) in the top right
 4. Select "Custom repositories"
 5. Add this repository URL: `https://github.com/JoshuaSeidel/hass-acinfinity-lovelace-card`
-6. Select category: "Lovelace"
+6. Select category: "Dashboard"
 7. Click "Add"
-8. Find "AC Infinity Lovelace Card" in the list and click "Install"
+8. Find "AC Infinity Controller Card" and click "Download"
 9. Restart Home Assistant
+10. Clear your browser cache (Ctrl+F5 / Cmd+Shift+R)
 
 ### Manual Installation
 
@@ -115,9 +122,21 @@ The card replicates the AC Infinity A+ Controller display with:
 ### Footer
 - AC Infinity branding
 
-## Entity Auto-Detection
+## How It Works
 
-The card automatically detects entities from the AC Infinity integration by checking the `integration` attribute on entities. Any entity with `integration: ac_infinity` will be detected and categorized.
+### Entity Auto-Detection
+
+The card automatically detects AC Infinity entities by checking if the entity's `integration` attribute equals `'ac_infinity'`. This is the proper way to identify entities from the AC Infinity integration.
+
+Entities are then categorized by their names:
+- **Probe/Tent sensors**: Names containing "tent_temperature", "tent_humidity", "tent_vpd", "probe_temperature", etc.
+- **Controller sensors**: Names containing "built_in_temperature", "built_in_humidity", "built_in_vpd", "controller_temperature", etc.
+- **Port entities**: Names containing "port_1", "port_2", etc. with state, power, or mode indicators
+
+The card groups entities by device and displays:
+- **Left side**: Port list with power status (when show_ports is enabled)
+- **Center**: Large temperature display with humidity and VPD from tent probe
+- **Right side**: Controller built-in sensor readings
 
 ### Detected Sensors:
 

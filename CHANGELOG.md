@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3] - 2024-12-03
+
+### Complete Rewrite
+- **Rewrote card using LitElement** - Modern Home Assistant best practices
+- **Fixed entity detection** - Properly detects AC Infinity entities by integration attribute
+- **Added missing UI elements** - Left side menu/settings buttons now present
+- **Fixed editor** - Proper LitElement implementation with reactive properties
+- **Enhanced port display** - Shows port names and better power status
+- **Improved performance** - Better state management and rendering
+
+### Technical Improvements
+- Import LitElement from unpkg CDN
+- Use `html` and `css` tagged templates
+- Proper reactive properties with `@property` decorators
+- Better event handling with `@click` bindings
+- Improved auto-detection logic for sensors and ports
+
 ## [1.0.2] - 2024-12-03
 
 ### Fixed
