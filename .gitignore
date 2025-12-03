@@ -1,6 +1,4 @@
 .DS_Store
-.git
-.github
 .vscode
 node_modules
 *.log
