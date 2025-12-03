@@ -213,6 +213,14 @@ class ACInfinityCard extends LitElement {
 
     this._entities = controllers;
     console.log('Detected controllers:', this._entities);
+    console.log('Ports found:', Object.values(controllers).flatMap(c => c.ports.map(p => ({
+      number: p.number,
+      name: p.name,
+      status: p.status,
+      device_type: p.device_type,
+      power: p.power,
+      port_device_id: p.port_device_id
+    }))));
     this.requestUpdate();
   }
 
@@ -482,32 +490,47 @@ class ACInfinityCard extends LitElement {
             <!-- RIGHT VALUES COLUMN -->
             <div class="right-values-column">
               <!-- Controller Temperature -->
-              <div class="value-row" @click="${() => this._handleEntityClick(controller.controller_temperature)}">
-                <span class="value-number">${controllerTemp}</span>
-                <span class="value-unit">°F</span>
+              <div class="value-row-with-label" @click="${() => this._handleEntityClick(controller.controller_temperature)}">
+                <span class="value-label">BUILT-IN TEMP</span>
+                <div class="value-content">
+                  <span class="value-number">${controllerTemp}</span>
+                  <span class="value-unit">°F</span>
+                </div>
               </div>
               
               <!-- Controller Humidity -->
-              <div class="value-row" @click="${() => this._handleEntityClick(controller.controller_humidity)}">
-                <span class="value-number">${controllerHumidity}</span>
-                <span class="value-unit">%</span>
+              <div class="value-row-with-label" @click="${() => this._handleEntityClick(controller.controller_humidity)}">
+                <span class="value-label">BUILT-IN HUMIDITY</span>
+                <div class="value-content">
+                  <span class="value-number">${controllerHumidity}</span>
+                  <span class="value-unit">%</span>
+                </div>
               </div>
               
               <!-- Current Level -->
-              <div class="value-row">
-                <span class="value-number">6</span>
+              <div class="value-row-with-label">
+                <span class="value-label">CURRENT LEVEL</span>
+                <div class="value-content">
+                  <span class="value-number">6</span>
+                </div>
               </div>
               
               <!-- Countdown -->
-              <div class="value-row">
-                <span class="value-number">${probeHumidity}</span>
-                <span class="value-unit">%</span>
+              <div class="value-row-with-label">
+                <span class="value-label">COUNTDOWN</span>
+                <div class="value-content">
+                  <span class="value-number">${probeHumidity}</span>
+                  <span class="value-unit">%</span>
+                </div>
               </div>
               
               <!-- Set To -->
-              <div class="value-row">
-                <span class="value-number">${controllerTemp}</span>
-                <span class="value-unit">°F</span>
+              <div class="value-row-with-label">
+                <span class="value-label">SET TO</span>
+                <div class="value-content">
+                  <span class="value-number">${controllerTemp}</span>
+                  <span class="value-unit">°F</span>
+                </div>
               </div>
             </div>
             
@@ -880,6 +903,27 @@ class ACInfinityCard extends LitElement {
         align-items: baseline;
         gap: 4px;
         cursor: pointer;
+      }
+      
+      .value-row-with-label {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        cursor: pointer;
+      }
+      
+      .value-label {
+        font-size: 9px;
+        color: #6db3d4;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .value-content {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
       }
       
       .value-number {
