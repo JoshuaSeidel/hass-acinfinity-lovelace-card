@@ -291,22 +291,21 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 
-### Latest (v1.0.5 - 2024-12-03)
+### Latest (v1.0.6 - 2024-12-03) 🎨
+**COMPLETE VISUAL REWRITE** - Exact hardware match!
+- ✅ Wide landscape layout (900px min) matching actual controller
+- ✅ Current time display (upper right) with auto-refresh
+- ✅ All labels and buttons from hardware image
+- ✅ Controller temperature & humidity with proper icons
+- ✅ Complete left/center/right sections matching hardware exactly
+- ✅ Every UI element from the physical controller
+
+### v1.0.5 (2024-12-03)
 - Fixed entity auto-detection to properly identify AC Infinity entities
 - Improved pattern matching for entity names
-- Better documentation for troubleshooting
-
-### v1.0.4 (2024-12-03)
-- Complete visual redesign matching AC Infinity A+ Controller hardware
-- All 8 ports displayed with color-coded status
-- Enhanced sensor display with proper icons
-- Improved layout and spacing
 
 ### v1.0.0 (2024-12-02)
 - Initial release
-- Auto-detection of AC Infinity entities
-- Replica of A+ Controller interface
-- Support for 8 ports
 - Real-time sensor display
 - Interactive port controls
 - Visual configuration editor
