@@ -230,17 +230,7 @@ class ACInfinityCard extends LitElement {
     return '●';
   }
 
-  _getPortIconColor(port, isOn) {
-    if (!isOn) return '#333';
-    
-    const power = this._getEntityState(port.power);
-    const powerNum = parseInt(power);
-    
-    if (powerNum === 0 || power === 'off') return '#333';
-    if (powerNum >= 1 && powerNum <= 3) return '#4CAF50';  // Green for low
-    if (powerNum >= 4 && powerNum <= 6) return '#4CAF50';  // Green for medium
-    return '#4CAF50';  // Green for high
-  }
+
 
   _getCurrentTime() {
     const now = new Date();
@@ -322,8 +312,8 @@ class ACInfinityCard extends LitElement {
           
           <!-- MAIN DISPLAY AREA -->
           <div class="main-display">
-            <!-- LEFT COLUMN: Port Controls -->
-            <div class="left-section">
+            <!-- BUTTONS COLUMN -->
+            <div class="buttons-column">
               <!-- Port Button (top circle button) -->
               <div class="port-button-container">
                 <button class="port-button" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
@@ -344,7 +334,10 @@ class ACInfinityCard extends LitElement {
                 <span class="button-label">MODE BUTTON</span>
               </div>
               
-              <!-- Ports List -->
+            </div>
+            
+            <!-- PORTS COLUMN -->
+            <div class="ports-column">
               <div class="ports-section">
                 <span class="section-label">PORTS</span>
                 <div class="ports-list">
@@ -353,7 +346,7 @@ class ACInfinityCard extends LitElement {
                     const power = this._getEntityState(port.power);
                     const isOn = state === 'on' || (power && power !== '0' && power !== 'off' && power !== 'unavailable' && power !== 'unknown');
                     const displayValue = isOn ? this._formatValue(power) : 'OFF';
-                    const iconColor = this._getPortIconColor(port, isOn);
+                    const iconColor = isOn ? '#fff' : '#555';
                     
                     return html`
                       <div class="port-item ${isOn ? 'active' : ''}" 
@@ -366,36 +359,28 @@ class ACInfinityCard extends LitElement {
                   })}
                 </div>
               </div>
-              
-              <!-- Setting Button -->
-              <div class="setting-button-container">
-                <button class="setting-button" @click="${() => this._handleEntityClick(controller.controller_temperature)}">
-                  <span class="settings-icon">⚙</span>
-                </button>
-                <span class="button-label">SETTING BUTTON</span>
+                </div>
               </div>
               
-              <!-- Probe Temperature -->
-              <div class="probe-temp-label">
-                <span>PROBE TEMPERATURE</span>
-              </div>
-            </div>
+
             
             <!-- CENTER COLUMN: Main Temperature Display -->
             <div class="center-section">
-              <div class="main-temp-display" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
-                <span class="temp-value">${probeTemp}</span>
-                <span class="temp-unit">°<br>F</span>
-              </div>
-              
-              <div class="secondary-readings">
-                <div class="reading-item" @click="${() => this._handleEntityClick(controller.probe_humidity)}">
-                  <span class="reading-value">${probeHumidity}</span>
-                  <span class="reading-unit">%</span>
+              <div class="temp-readings-horizontal">
+                <div class="main-temp-display" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
+                  <span class="temp-value">${probeTemp}</span>
+                  <span class="temp-unit">°<br>F</span>
                 </div>
-                <div class="reading-item" @click="${() => this._handleEntityClick(controller.probe_vpd)}">
-                  <span class="reading-value">${probeVpd}</span>
-                  <span class="reading-unit">kPa</span>
+                
+                <div class="secondary-readings-vertical">
+                  <div class="reading-item" @click="${() => this._handleEntityClick(controller.probe_humidity)}">
+                    <span class="reading-value">${probeHumidity}</span>
+                    <span class="reading-unit">%</span>
+                  </div>
+                  <div class="reading-item" @click="${() => this._handleEntityClick(controller.probe_vpd)}">
+                    <span class="reading-value">${probeVpd}</span>
+                    <span class="reading-unit">kPa</span>
+                  </div>
                 </div>
               </div>
               
@@ -403,72 +388,46 @@ class ACInfinityCard extends LitElement {
                 <span class="mode-label">AUTO</span>
                 <span class="mode-detail">• HIGH TEMP</span>
               </div>
-              
-              <div class="controller-mode-label">
-                <span>CONTROLLER MODE</span>
-              </div>
             </div>
             
-            <!-- RIGHT COLUMN: Controller Sensors and Controls -->
-            <div class="right-section">
-              <!-- Probe Humidity Label -->
-              <div class="probe-humidity-label">
-                <span>PROBE HUMIDITY</span>
-              </div>
-              
-              <!-- Up/Down Button -->
-              <div class="updown-button-container">
-                <button class="updown-button">
-                  <span>△</span>
-                  <span>▽</span>
-                </button>
-                <span class="button-label">UP/DOWN BUTTON</span>
-              </div>
-              
+            <!-- RIGHT VALUES COLUMN -->
+            <div class="right-values-column">
               <!-- Controller Temperature -->
-              <div class="controller-sensor" @click="${() => this._handleEntityClick(controller.controller_temperature)}">
-                <span class="sensor-icon">☁️</span>
-                <div class="sensor-reading">
-                  <span class="sensor-value">${controllerTemp}</span>
-                  <span class="sensor-unit">°F</span>
-                </div>
+              <div class="value-row" @click="${() => this._handleEntityClick(controller.controller_temperature)}">
+                <span class="value-number">${controllerTemp}</span>
+                <span class="value-unit">°F</span>
               </div>
               
               <!-- Controller Humidity -->
-              <div class="controller-sensor" @click="${() => this._handleEntityClick(controller.controller_humidity)}">
-                <span class="sensor-icon">💧</span>
-                <div class="sensor-reading">
-                  <span class="sensor-value">${controllerHumidity}</span>
-                  <span class="sensor-unit">%</span>
-                </div>
+              <div class="value-row" @click="${() => this._handleEntityClick(controller.controller_humidity)}">
+                <span class="value-number">${controllerHumidity}</span>
+                <span class="value-unit">%</span>
               </div>
               
-              <!-- Current Level Indicator -->
-              <div class="current-level">
-                <span class="level-icon">◆</span>
-                <span class="level-value">6</span>
-                <span class="level-bar">▽</span>
+              <!-- Current Level -->
+              <div class="value-row">
+                <span class="value-number">6</span>
               </div>
-              <span class="section-label">CURRENT LEVEL</span>
               
-              <!-- Countdown Display -->
-              <div class="countdown-display">
-                <span class="countdown-value">450%</span>
+              <!-- Countdown -->
+              <div class="value-row">
+                <span class="value-number">${probeHumidity}</span>
+                <span class="value-unit">%</span>
               </div>
-              <span class="section-label">COUNTDOWN</span>
               
-              <!-- Set To Display -->
-              <div class="set-to-display">
-                <span class="set-to-label">SET TO</span>
-                <span class="set-to-value">${controllerTemp}</span>
-                <span class="set-to-unit">°F</span>
+              <!-- Set To -->
+              <div class="value-row">
+                <span class="value-number">${controllerTemp}</span>
+                <span class="value-unit">°F</span>
               </div>
-              <span class="section-label">USER SETTING</span>
-              
-              <!-- Probe VPD Label -->
-              <div class="probe-vpd-label">
-                <span>PROBE VPD</span>
-              </div>
+            </div>
+            
+            <!-- UP/DOWN BUTTON COLUMN -->
+            <div class="updown-column">
+              <button class="updown-button">
+                <span>△</span>
+                <span>▽</span>
+              </button>
             </div>
           </div>
           
@@ -495,7 +454,7 @@ class ACInfinityCard extends LitElement {
       }
       
       .ac-infinity-card {
-        background: linear-gradient(135deg, #2c3e50 0%, #1a252f 50%, #0d1419 100%);
+        background: #000;
         color: #fff;
         font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
         border-radius: 16px;
@@ -564,19 +523,19 @@ class ACInfinityCard extends LitElement {
       /* MAIN DISPLAY */
       .main-display {
         display: grid;
-        grid-template-columns: 220px 1fr 320px;
-        gap: 48px;
+        grid-template-columns: 120px 180px 1fr 240px 80px;
+        gap: 24px;
         padding: 40px 32px;
         min-height: 450px;
-        align-items: start;
+        align-items: center;
       }
       
-      /* LEFT SECTION */
-      .left-section {
+      /* BUTTONS COLUMN */
+      .buttons-column {
         display: flex;
         flex-direction: column;
         gap: 20px;
-        align-items: flex-start;
+        align-items: center;
       }
       
       .port-button-container,
@@ -600,19 +559,35 @@ class ACInfinityCard extends LitElement {
       
       .port-button,
       .mode-button,
-      .setting-button,
-      .updown-button {
+      .setting-button {
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        background: rgba(255,255,255,0.05);
-        border: 2px solid #444;
+        background: #000;
+        border: 2px solid #555;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        color: #888;
+        color: #aaa;
         font-size: 20px;
+        transition: all 0.3s;
+      }
+      
+      .updown-button {
+        width: 60px;
+        height: 100px;
+        border-radius: 8px;
+        background: #000;
+        border: 2px solid #555;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        color: #aaa;
+        font-size: 24px;
         transition: all 0.3s;
       }
       
@@ -620,9 +595,8 @@ class ACInfinityCard extends LitElement {
       .mode-button:hover,
       .setting-button:hover,
       .updown-button:hover {
-        background: rgba(255,255,255,0.1);
-        border-color: #666;
-        color: #aaa;
+        border-color: #777;
+        color: #fff;
       }
       
       .hamburger-icon {
@@ -638,15 +612,16 @@ class ACInfinityCard extends LitElement {
         border-radius: 1px;
       }
       
-      .updown-button {
+
+      
+      /* PORTS COLUMN */
+      .ports-column {
+        display: flex;
         flex-direction: column;
-        gap: 2px;
-        font-size: 16px;
       }
       
       .ports-section {
         width: 100%;
-        margin-top: 12px;
       }
       
       .section-label {
@@ -670,7 +645,7 @@ class ACInfinityCard extends LitElement {
         align-items: center;
         gap: 8px;
         padding: 8px 12px;
-        background: rgba(255,255,255,0.02);
+        background: #000;
         border-radius: 4px;
         cursor: pointer;
         transition: all 0.2s;
@@ -678,11 +653,7 @@ class ACInfinityCard extends LitElement {
       }
       
       .port-item:hover {
-        background: rgba(255,255,255,0.08);
-      }
-      
-      .port-item.active {
-        background: rgba(76, 175, 80, 0.1);
+        background: #111;
       }
       
       .port-num {
@@ -692,6 +663,7 @@ class ACInfinityCard extends LitElement {
       
       .port-icon {
         font-size: 16px;
+        color: inherit;
       }
       
       .port-value {
@@ -717,8 +689,13 @@ class ACInfinityCard extends LitElement {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 24px;
-        padding: 0 20px;
+        gap: 16px;
+      }
+      
+      .temp-readings-horizontal {
+        display: flex;
+        align-items: center;
+        gap: 32px;
       }
       
       .main-temp-display {
@@ -749,11 +726,11 @@ class ACInfinityCard extends LitElement {
         text-align: center;
       }
       
-      .secondary-readings {
+      .secondary-readings-vertical {
         display: flex;
-        gap: 48px;
-        align-items: center;
-        margin-top: 8px;
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
       }
       
       .reading-item {
@@ -795,103 +772,41 @@ class ACInfinityCard extends LitElement {
         color: #999;
       }
       
-      /* RIGHT SECTION */
-      .right-section {
+      /* RIGHT VALUES COLUMN */
+      .right-values-column {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 24px;
         align-items: flex-end;
+        justify-content: center;
       }
       
-      .controller-sensor {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-        transition: opacity 0.2s;
-      }
-      
-      .controller-sensor:hover {
-        opacity: 0.8;
-      }
-      
-      .sensor-icon {
-        font-size: 24px;
-        width: 32px;
-        text-align: center;
-      }
-      
-      .sensor-reading {
+      .value-row {
         display: flex;
         align-items: baseline;
         gap: 4px;
+        cursor: pointer;
       }
       
-      .sensor-value {
-        font-size: 28px;
+      .value-number {
+        font-size: 32px;
         font-weight: 400;
+        color: #fff;
       }
       
-      .sensor-unit {
+      .value-unit {
         font-size: 16px;
-        color: #999;
-      }
-      
-      .current-level {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 20px;
-        margin-top: 12px;
-      }
-      
-      .level-icon {
         color: #888;
       }
       
-      .level-value {
-        font-size: 24px;
-        font-weight: 500;
-      }
-      
-      .level-bar {
-        color: #666;
-      }
-      
-      .countdown-display {
-        margin-top: 8px;
-      }
-      
-      .countdown-value {
-        font-size: 32px;
-        font-weight: 400;
-      }
-      
-      .set-to-display {
+      /* UP/DOWN COLUMN */
+      .updown-column {
         display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 4px;
-        margin-top: 16px;
+        align-items: center;
+        justify-content: center;
       }
       
-      .set-to-label {
-        font-size: 10px;
-        color: #666;
-        letter-spacing: 1px;
-      }
-      
-      .set-to-value {
-        font-size: 52px;
-        font-weight: 300;
-        line-height: 1;
-      }
-      
-      .set-to-unit {
-        font-size: 18px;
-        color: #999;
-        margin-top: -8px;
-      }
+
       
       /* BOTTOM BAR */
       .bottom-bar {
