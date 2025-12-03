@@ -1109,25 +1109,169 @@ class ACInfinityCard extends LitElement {
         }
         
         .main-display {
-          padding: 20px 12px;
+          padding: 16px 12px;
+          gap: 16px;
+        }
+        
+        .buttons-column {
+          gap: 12px;
+        }
+        
+        .port-button,
+        .mode-button,
+        .setting-button {
+          width: 56px;
+          height: 56px;
+          font-size: 20px;
+        }
+        
+        .button-label {
+          font-size: 8px;
+          margin-top: 4px;
+        }
+        
+        .ports-column {
+          gap: 8px;
+        }
+        
+        .port-item {
+          padding: 10px 12px;
+          font-size: 13px;
+          grid-template-columns: 1fr 28px 45px;
+          gap: 10px;
+        }
+        
+        .port-num {
+          font-size: 13px;
+        }
+        
+        .port-icon {
+          font-size: 18px;
+        }
+        
+        .port-value {
+          font-size: 13px;
+        }
+        
+        .temp-readings-horizontal {
           gap: 20px;
         }
         
         .temp-value {
-          font-size: 80px;
+          font-size: 120px;
+          letter-spacing: -8px;
+        }
+        
+        .temp-unit {
+          font-size: 24px;
+          margin-top: 6px;
+        }
+        
+        .reading-value {
+          font-size: 36px;
+        }
+        
+        .reading-unit {
+          font-size: 16px;
+        }
+        
+        .mode-status {
+          font-size: 11px;
+        }
+        
+        .value-row-with-label {
+          gap: 6px;
+        }
+        
+        .value-label {
+          font-size: 9px;
+        }
+        
+        .value-number {
+          font-size: 32px;
+        }
+        
+        .updown-column {
+          gap: 12px;
+        }
+        
+        .updown-button {
+          width: 60px;
+          height: 100px;
+          font-size: 24px;
+        }
+      }
+      
+      /* iOS Home Assistant App specific optimizations */
+      @media (max-width: 414px) {
+        .main-display {
+          padding: 12px 8px;
+          gap: 12px;
+        }
+        
+        .ports-section-title {
+          font-size: 10px;
+        }
+        
+        .port-item {
+          padding: 8px 10px;
+          font-size: 12px;
+          grid-template-columns: 1fr 24px 40px;
+        }
+        
+        .port-num {
+          font-size: 12px;
+        }
+        
+        .port-icon {
+          font-size: 16px;
+        }
+        
+        .port-value {
+          font-size: 12px;
+        }
+        
+        .temp-value {
+          font-size: 100px;
+          letter-spacing: -6px;
+        }
+        
+        .temp-unit {
+          font-size: 20px;
         }
         
         .reading-value {
           font-size: 32px;
         }
         
+        .reading-unit {
+          font-size: 14px;
+        }
+        
         .value-number {
           font-size: 28px;
         }
         
-        .port-item {
-          padding: 6px 10px;
-          font-size: 12px;
+        .updown-button {
+          width: 50px;
+          height: 80px;
+          font-size: 20px;
+        }
+      }
+      
+      /* Extra small phones */
+      @media (max-width: 375px) {
+        .temp-value {
+          font-size: 90px;
+          letter-spacing: -5px;
+        }
+        
+        .reading-value {
+          font-size: 28px;
+        }
+        
+        .value-number {
+          font-size: 24px;
         }
       }
     `;
@@ -1162,7 +1306,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.24 ',
+  '%c AC-INFINITY-CARD %c Version 1.0.25 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
