@@ -37,7 +37,7 @@ This card requires the [AC Infinity Home Assistant Integration](https://github.c
 3. Click the three dots in the top right corner
 4. Select "Custom repositories"
 5. Add this repository URL: `https://github.com/JoshuaSeidel/hass-acinfinity-lovelace-card`
-6. Select category: "Lovelace"
+6. Select category: "Dashboard"
 7. Click "Add"
 8. Find "AC Infinity Lovelace Card" in the list and click "Install"
 9. Restart Home Assistant
