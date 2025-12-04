@@ -580,7 +580,7 @@ class ACInfinityCard extends LitElement {
           <!-- BOTTOM BAR: Brand -->
           <div class="bottom-bar">
             <span class="brand">AC INFINITY</span>
-            <span class="version">v1.0.27</span>
+            <span class="version">v1.0.28</span>
           </div>
         </div>
       </ha-card>
@@ -1072,19 +1072,19 @@ class ACInfinityCard extends LitElement {
       
       @media (max-width: 900px) {
         .main-display {
-          grid-template-columns: 1fr;
-          grid-template-rows: auto auto auto auto auto;
-          gap: 16px;
-          padding: 16px 12px;
-          align-items: start;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding: 10px 8px;
         }
         
         .buttons-column {
           flex-direction: row;
-          gap: 12px;
+          gap: 10px;
           justify-content: center;
           width: 100%;
           order: 5;
+          display: none;
         }
         
         .ports-column {
@@ -1095,22 +1095,20 @@ class ACInfinityCard extends LitElement {
         .center-section {
           width: 100%;
           order: 2;
-          gap: 12px;
+          gap: 8px;
         }
         
         .right-values-column {
           width: 100%;
-          align-items: center;
-          gap: 12px;
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 8px;
           order: 3;
-        }
-        
-        .value-row {
-          justify-content: center;
         }
         
         .value-row-with-label {
           align-items: center;
+          flex-direction: column;
         }
         
         .updown-column {
@@ -1118,228 +1116,91 @@ class ACInfinityCard extends LitElement {
           justify-content: center;
           flex-direction: row;
           order: 4;
-          gap: 20px;
+          gap: 15px;
+          display: none;
         }
         
         .temp-value {
-          font-size: 100px;
+          font-size: 80px;
         }
         
         .value-number {
-          font-size: 32px;
+          font-size: 24px;
+        }
+        
+        .top-bar {
+          padding: 10px 16px;
         }
       }
       
       @media (max-width: 600px) {
         .ac-infinity-card {
-          border-radius: 8px;
+          border-radius: 4px;
         }
         
-        .main-display {
-          padding: 12px 10px;
-          gap: 12px;
-        }
-        
-        .buttons-column {
-          gap: 10px;
-        }
-        
-        .port-button,
-        .mode-button,
-        .setting-button {
-          width: 50px;
-          height: 50px;
-          font-size: 18px;
-        }
-        
-        .button-label {
-          font-size: 7px;
-          margin-top: 3px;
-        }
-        
-        .ports-column {
-          gap: 4px;
-        }
-        
-        .ports-section-title {
-          font-size: 10px;
-          margin-bottom: 6px;
-        }
-        
-        .port-item {
-          padding: 8px 10px;
-          font-size: 13px;
-          grid-template-columns: 1fr 24px 40px;
-          gap: 8px;
-        }
-        
-        .port-num {
-          font-size: 13px;
-        }
-        
-        .port-icon {
-          font-size: 16px;
-        }
-        
-        .port-value {
-          font-size: 13px;
-        }
-        
-        .center-section {
-          gap: 10px;
-        }
-        
-        .temp-readings-horizontal {
-          gap: 16px;
-        }
-        
-        .temp-value {
-          font-size: 100px;
-          letter-spacing: -6px;
-        }
-        
-        .temp-unit {
-          font-size: 20px;
-          margin-top: 4px;
-        }
-        
-        .reading-value {
-          font-size: 30px;
-        }
-        
-        .reading-unit {
-          font-size: 14px;
-        }
-        
-        .mode-status {
-          font-size: 10px;
-          gap: 8px;
-        }
-        
-        .value-row-with-label {
-          gap: 4px;
-        }
-        
-        .value-label {
-          font-size: 9px;
-        }
-        
-        .value-number {
-          font-size: 28px;
-        }
-        
-        .updown-column {
-          gap: 20px;
-        }
-        
-        .updown-button {
-          width: 70px;
-          height: 70px;
-          font-size: 28px;
-        }
-      }
-      
-      /* iOS Home Assistant App specific optimizations */
-      @media (max-width: 414px) {
-        .main-display {
-          padding: 10px 8px;
-          gap: 10px;
-        }
-        
-        .ports-section-title {
-          font-size: 9px;
-          margin-bottom: 4px;
-        }
-        
-        .ports-column {
-          gap: 3px;
-        }
-        
-        .port-item {
-          padding: 7px 10px;
-          font-size: 12px;
-          grid-template-columns: 1fr 22px 38px;
-          gap: 8px;
-        }
-        
-        .port-num {
-          font-size: 12px;
-        }
-        
-        .port-icon {
-          font-size: 15px;
-        }
-        
-        .port-value {
-          font-size: 12px;
-        }
-        
-        .center-section {
-          gap: 8px;
-        }
-        
-        .temp-readings-horizontal {
-          gap: 12px;
-        }
-        
-        .temp-value {
-          font-size: 90px;
-          letter-spacing: -5px;
-        }
-        
-        .temp-unit {
-          font-size: 18px;
-        }
-        
-        .reading-value {
-          font-size: 28px;
-        }
-        
-        .reading-unit {
-          font-size: 12px;
-        }
-        
-        .mode-status {
-          font-size: 9px;
-        }
-        
-        .value-label {
-          font-size: 8px;
-        }
-        
-        .value-number {
-          font-size: 24px;
-        }
-        
-        .updown-button {
-          width: 65px;
-          height: 65px;
-          font-size: 24px;
-        }
-        
-        .port-button,
-        .mode-button,
-        .setting-button {
-          width: 45px;
-          height: 45px;
-          font-size: 16px;
-        }
-      }
-      
-      /* Extra small phones */
-      @media (max-width: 375px) {
         .main-display {
           padding: 8px 6px;
           gap: 8px;
         }
         
+        .top-bar {
+          padding: 8px 12px;
+        }
+        
+        .ai-badge {
+          padding: 3px 6px;
+          font-size: 11px;
+        }
+        
+        .current-time {
+          font-size: 11px;
+        }
+        
+        .ports-column {
+          gap: 2px;
+        }
+        
+        .ports-section-title {
+          font-size: 9px;
+          margin-bottom: 4px;
+          letter-spacing: 1px;
+        }
+        
+        .port-item {
+          padding: 6px 8px;
+          font-size: 12px;
+          grid-template-columns: 1fr 20px 35px;
+          gap: 6px;
+        }
+        
+        .port-num {
+          font-size: 11px;
+        }
+        
+        .port-icon {
+          font-size: 14px;
+        }
+        
+        .port-value {
+          font-size: 11px;
+        }
+        
+        .center-section {
+          gap: 6px;
+        }
+        
+        .temp-readings-horizontal {
+          gap: 12px;
+        }
+        
         .temp-value {
-          font-size: 80px;
+          font-size: 70px;
           letter-spacing: -4px;
         }
         
         .temp-unit {
           font-size: 16px;
+          margin-top: 2px;
         }
         
         .reading-value {
@@ -1350,19 +1211,126 @@ class ACInfinityCard extends LitElement {
           font-size: 11px;
         }
         
+        .mode-status {
+          font-size: 9px;
+          gap: 6px;
+        }
+        
+        .value-row-with-label {
+          gap: 2px;
+        }
+        
+        .value-label {
+          font-size: 7px;
+          text-align: center;
+        }
+        
         .value-number {
           font-size: 22px;
         }
         
-        .port-item {
-          padding: 6px 8px;
-          font-size: 11px;
+        .value-unit {
+          font-size: 10px;
         }
         
-        .updown-button {
-          width: 60px;
-          height: 60px;
+        .right-values-column {
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 6px;
+        }
+        
+        .bottom-bar {
+          padding: 8px;
+        }
+        
+        .brand {
+          font-size: 9px;
+          letter-spacing: 2px;
+        }
+        
+        .version {
+          font-size: 7px;
+          padding: 2px 6px;
+        }
+      }
+      
+      /* iOS Home Assistant App - hide buttons/controls on mobile */
+      @media (max-width: 414px) {
+        .main-display {
+          padding: 8px 6px;
+          gap: 6px;
+        }
+        
+        .top-bar {
+          padding: 6px 10px;
+        }
+        
+        .ports-section-title {
+          font-size: 8px;
+          margin-bottom: 3px;
+        }
+        
+        .ports-column {
+          gap: 2px;
+        }
+        
+        .port-item {
+          padding: 5px 7px;
+          font-size: 11px;
+          grid-template-columns: 1fr 18px 32px;
+          gap: 5px;
+        }
+        
+        .port-num {
+          font-size: 10px;
+        }
+        
+        .port-icon {
+          font-size: 13px;
+        }
+        
+        .port-value {
+          font-size: 10px;
+        }
+        
+        .center-section {
+          gap: 5px;
+        }
+        
+        .temp-readings-horizontal {
+          gap: 10px;
+        }
+        
+        .temp-value {
+          font-size: 65px;
+          letter-spacing: -3px;
+        }
+        
+        .temp-unit {
+          font-size: 14px;
+        }
+        
+        .reading-value {
           font-size: 22px;
+        }
+        
+        .reading-unit {
+          font-size: 10px;
+        }
+        
+        .mode-status {
+          font-size: 8px;
+        }
+        
+        .value-label {
+          font-size: 6px;
+        }
+        
+        .value-number {
+          font-size: 20px;
+        }
+        
+        .value-unit {
+          font-size: 9px;
         }
       }
     `;
@@ -1397,7 +1365,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.27 ',
+  '%c AC-INFINITY-CARD %c Version 1.0.28 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
