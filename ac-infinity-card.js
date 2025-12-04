@@ -580,6 +580,7 @@ class ACInfinityCard extends LitElement {
           <!-- BOTTOM BAR: Brand -->
           <div class="bottom-bar">
             <span class="brand">AC INFINITY</span>
+            <span class="version">v1.0.26</span>
           </div>
         </div>
       </ha-card>
@@ -990,6 +991,10 @@ class ACInfinityCard extends LitElement {
         text-align: center;
         background: rgba(0,0,0,0.3);
         border-top: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
       }
       
       .brand {
@@ -997,6 +1002,16 @@ class ACInfinityCard extends LitElement {
         letter-spacing: 3px;
         color: #666;
         text-transform: uppercase;
+      }
+      
+      .version {
+        font-size: 9px;
+        letter-spacing: 1px;
+        color: #4CAF50;
+        background: rgba(76, 175, 80, 0.1);
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-weight: 500;
       }
       
       /* RESPONSIVE */
