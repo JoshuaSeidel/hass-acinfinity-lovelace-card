@@ -580,7 +580,7 @@ class ACInfinityCard extends LitElement {
           <!-- BOTTOM BAR: Brand -->
           <div class="bottom-bar">
             <span class="brand">AC INFINITY</span>
-            <span class="version">v1.0.28</span>
+            <span class="version">v1.0.29</span>
           </div>
         </div>
       </ha-card>
@@ -1157,7 +1157,7 @@ class ACInfinityCard extends LitElement {
         }
         
         .ports-column {
-          gap: 2px;
+          gap: 6px;
         }
         
         .ports-section-title {
@@ -1166,23 +1166,29 @@ class ACInfinityCard extends LitElement {
           letter-spacing: 1px;
         }
         
+        .ports-list {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 4px;
+        }
+        
         .port-item {
-          padding: 6px 8px;
-          font-size: 12px;
-          grid-template-columns: 1fr 20px 35px;
-          gap: 6px;
+          padding: 6px 6px;
+          font-size: 11px;
+          grid-template-columns: 1fr 18px 30px;
+          gap: 4px;
         }
         
         .port-num {
-          font-size: 11px;
+          font-size: 10px;
         }
         
         .port-icon {
-          font-size: 14px;
+          font-size: 13px;
         }
         
         .port-value {
-          font-size: 11px;
+          font-size: 10px;
         }
         
         .center-section {
@@ -1270,26 +1276,31 @@ class ACInfinityCard extends LitElement {
         }
         
         .ports-column {
-          gap: 2px;
+          gap: 4px;
+        }
+        
+        .ports-list {
+          grid-template-columns: 1fr 1fr;
+          gap: 3px;
         }
         
         .port-item {
-          padding: 5px 7px;
-          font-size: 11px;
-          grid-template-columns: 1fr 18px 32px;
-          gap: 5px;
+          padding: 5px 5px;
+          font-size: 10px;
+          grid-template-columns: 1fr 16px 28px;
+          gap: 4px;
         }
         
         .port-num {
-          font-size: 10px;
+          font-size: 9px;
         }
         
         .port-icon {
-          font-size: 13px;
+          font-size: 12px;
         }
         
         .port-value {
-          font-size: 10px;
+          font-size: 9px;
         }
         
         .center-section {
@@ -1365,7 +1376,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.28 ',
+  '%c AC-INFINITY-CARD %c Version 1.0.29 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
