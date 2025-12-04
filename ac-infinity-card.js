@@ -1059,39 +1059,51 @@ class ACInfinityCard extends LitElement {
         .main-display {
           grid-template-columns: 1fr;
           grid-template-rows: auto auto auto auto auto;
-          gap: 24px;
-          padding: 24px 16px;
+          gap: 16px;
+          padding: 16px 12px;
           align-items: start;
         }
         
         .buttons-column {
           flex-direction: row;
-          gap: 16px;
+          gap: 12px;
           justify-content: center;
           width: 100%;
+          order: 5;
         }
         
         .ports-column {
           width: 100%;
+          order: 1;
         }
         
         .center-section {
           width: 100%;
+          order: 2;
+          gap: 12px;
         }
         
         .right-values-column {
           width: 100%;
           align-items: center;
-          gap: 16px;
+          gap: 12px;
+          order: 3;
         }
         
         .value-row {
           justify-content: center;
         }
         
+        .value-row-with-label {
+          align-items: center;
+        }
+        
         .updown-column {
           width: 100%;
           justify-content: center;
+          flex-direction: row;
+          order: 4;
+          gap: 20px;
         }
         
         .temp-value {
@@ -1109,118 +1121,45 @@ class ACInfinityCard extends LitElement {
         }
         
         .main-display {
-          padding: 16px 12px;
-          gap: 16px;
+          padding: 12px 10px;
+          gap: 12px;
         }
         
         .buttons-column {
-          gap: 12px;
+          gap: 10px;
         }
         
         .port-button,
         .mode-button,
         .setting-button {
-          width: 56px;
-          height: 56px;
-          font-size: 20px;
-        }
-        
-        .button-label {
-          font-size: 8px;
-          margin-top: 4px;
-        }
-        
-        .ports-column {
-          gap: 8px;
-        }
-        
-        .port-item {
-          padding: 10px 12px;
-          font-size: 13px;
-          grid-template-columns: 1fr 28px 45px;
-          gap: 10px;
-        }
-        
-        .port-num {
-          font-size: 13px;
-        }
-        
-        .port-icon {
+          width: 50px;
+          height: 50px;
           font-size: 18px;
         }
         
-        .port-value {
-          font-size: 13px;
+        .button-label {
+          font-size: 7px;
+          margin-top: 3px;
         }
         
-        .temp-readings-horizontal {
-          gap: 20px;
-        }
-        
-        .temp-value {
-          font-size: 120px;
-          letter-spacing: -8px;
-        }
-        
-        .temp-unit {
-          font-size: 24px;
-          margin-top: 6px;
-        }
-        
-        .reading-value {
-          font-size: 36px;
-        }
-        
-        .reading-unit {
-          font-size: 16px;
-        }
-        
-        .mode-status {
-          font-size: 11px;
-        }
-        
-        .value-row-with-label {
-          gap: 6px;
-        }
-        
-        .value-label {
-          font-size: 9px;
-        }
-        
-        .value-number {
-          font-size: 32px;
-        }
-        
-        .updown-column {
-          gap: 12px;
-        }
-        
-        .updown-button {
-          width: 60px;
-          height: 100px;
-          font-size: 24px;
-        }
-      }
-      
-      /* iOS Home Assistant App specific optimizations */
-      @media (max-width: 414px) {
-        .main-display {
-          padding: 12px 8px;
-          gap: 12px;
+        .ports-column {
+          gap: 4px;
         }
         
         .ports-section-title {
           font-size: 10px;
+          margin-bottom: 6px;
         }
         
         .port-item {
           padding: 8px 10px;
-          font-size: 12px;
+          font-size: 13px;
           grid-template-columns: 1fr 24px 40px;
+          gap: 8px;
         }
         
         .port-num {
-          font-size: 12px;
+          font-size: 13px;
         }
         
         .port-icon {
@@ -1228,7 +1167,15 @@ class ACInfinityCard extends LitElement {
         }
         
         .port-value {
-          font-size: 12px;
+          font-size: 13px;
+        }
+        
+        .center-section {
+          gap: 10px;
+        }
+        
+        .temp-readings-horizontal {
+          gap: 16px;
         }
         
         .temp-value {
@@ -1238,40 +1185,169 @@ class ACInfinityCard extends LitElement {
         
         .temp-unit {
           font-size: 20px;
+          margin-top: 4px;
         }
         
         .reading-value {
-          font-size: 32px;
+          font-size: 30px;
         }
         
         .reading-unit {
           font-size: 14px;
         }
         
+        .mode-status {
+          font-size: 10px;
+          gap: 8px;
+        }
+        
+        .value-row-with-label {
+          gap: 4px;
+        }
+        
+        .value-label {
+          font-size: 9px;
+        }
+        
         .value-number {
           font-size: 28px;
         }
         
+        .updown-column {
+          gap: 20px;
+        }
+        
         .updown-button {
-          width: 50px;
-          height: 80px;
-          font-size: 20px;
+          width: 70px;
+          height: 70px;
+          font-size: 28px;
         }
       }
       
-      /* Extra small phones */
-      @media (max-width: 375px) {
+      /* iOS Home Assistant App specific optimizations */
+      @media (max-width: 414px) {
+        .main-display {
+          padding: 10px 8px;
+          gap: 10px;
+        }
+        
+        .ports-section-title {
+          font-size: 9px;
+          margin-bottom: 4px;
+        }
+        
+        .ports-column {
+          gap: 3px;
+        }
+        
+        .port-item {
+          padding: 7px 10px;
+          font-size: 12px;
+          grid-template-columns: 1fr 22px 38px;
+          gap: 8px;
+        }
+        
+        .port-num {
+          font-size: 12px;
+        }
+        
+        .port-icon {
+          font-size: 15px;
+        }
+        
+        .port-value {
+          font-size: 12px;
+        }
+        
+        .center-section {
+          gap: 8px;
+        }
+        
+        .temp-readings-horizontal {
+          gap: 12px;
+        }
+        
         .temp-value {
           font-size: 90px;
           letter-spacing: -5px;
+        }
+        
+        .temp-unit {
+          font-size: 18px;
         }
         
         .reading-value {
           font-size: 28px;
         }
         
+        .reading-unit {
+          font-size: 12px;
+        }
+        
+        .mode-status {
+          font-size: 9px;
+        }
+        
+        .value-label {
+          font-size: 8px;
+        }
+        
         .value-number {
           font-size: 24px;
+        }
+        
+        .updown-button {
+          width: 65px;
+          height: 65px;
+          font-size: 24px;
+        }
+        
+        .port-button,
+        .mode-button,
+        .setting-button {
+          width: 45px;
+          height: 45px;
+          font-size: 16px;
+        }
+      }
+      
+      /* Extra small phones */
+      @media (max-width: 375px) {
+        .main-display {
+          padding: 8px 6px;
+          gap: 8px;
+        }
+        
+        .temp-value {
+          font-size: 80px;
+          letter-spacing: -4px;
+        }
+        
+        .temp-unit {
+          font-size: 16px;
+        }
+        
+        .reading-value {
+          font-size: 24px;
+        }
+        
+        .reading-unit {
+          font-size: 11px;
+        }
+        
+        .value-number {
+          font-size: 22px;
+        }
+        
+        .port-item {
+          padding: 6px 8px;
+          font-size: 11px;
+        }
+        
+        .updown-button {
+          width: 60px;
+          height: 60px;
+          font-size: 22px;
         }
       }
     `;
@@ -1306,7 +1382,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.25 ',
+  '%c AC-INFINITY-CARD %c Version 1.0.26 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
