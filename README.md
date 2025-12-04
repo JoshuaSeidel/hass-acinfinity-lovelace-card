@@ -6,7 +6,13 @@
 
 A custom Lovelace card for Home Assistant that replicates the AC Infinity A+ Controller interface. This card automatically detects and displays all AC Infinity devices integrated through the [AC Infinity Integration](https://github.com/JoshuaSeidel/homeassistant-acinfinity).
 
-![AC Infinity Card Preview](https://raw.githubusercontent.com/JoshuaSeidel/hass-acinfinity-lovelace-card/main/ac-infinity-card.png)
+## Screenshots
+
+### Desktop View
+![AC Infinity Card Desktop](https://raw.githubusercontent.com/JoshuaSeidel/hass-acinfinity-lovelace-card/main/ac-infinity-card.png)
+
+### Mobile View
+![AC Infinity Card Mobile](https://raw.githubusercontent.com/JoshuaSeidel/hass-acinfinity-lovelace-card/main/ac-infinity-card-mobile.jpeg)
 
 ## Features
 
