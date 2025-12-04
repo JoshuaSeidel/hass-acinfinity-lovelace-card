@@ -580,7 +580,7 @@ class ACInfinityCard extends LitElement {
           <!-- BOTTOM BAR: Brand -->
           <div class="bottom-bar">
             <span class="brand">AC INFINITY</span>
-            <span class="version">v1.0.26</span>
+            <span class="version">v1.0.27</span>
           </div>
         </div>
       </ha-card>
@@ -1397,7 +1397,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.26 ',
+  '%c AC-INFINITY-CARD %c Version 1.0.27 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
