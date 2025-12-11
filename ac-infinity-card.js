@@ -17,17 +17,22 @@ class ACInfinityCard extends LitElement {
     if (!config) {
       throw new Error('Invalid configuration');
     }
-    
+
     this.config = {
       title: config.title || 'AC Infinity Controller',
       show_ports: config.show_ports !== false,
       auto_detect: config.auto_detect !== false,
+      selected_controller: config.selected_controller || null, // Controller device_id to display
       probe_temp_entity: config.probe_temp_entity || null,
       probe_humidity_entity: config.probe_humidity_entity || null,
       probe_vpd_entity: config.probe_vpd_entity || null,
       controller_temp_entity: config.controller_temp_entity || null,
       controller_humidity_entity: config.controller_humidity_entity || null,
       controller_vpd_entity: config.controller_vpd_entity || null,
+      // New sensor entity config options
+      moisture_entity: config.moisture_entity || null,
+      co2_entity: config.co2_entity || null,
+      uv_entity: config.uv_entity || null,
       ...config
     };
   }
@@ -61,28 +66,28 @@ class ACInfinityCard extends LitElement {
     if (!this._hass || !this._hass.states) return;
 
     const entities = Object.keys(this._hass.states);
-    
+
     // Find ALL AC Infinity entities
     let acInfinityEntities = entities.filter(entity => {
       const state = this._hass.states[entity];
       if (!state) return false;
-      
+
       const entityLower = entity.toLowerCase();
       const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
-      
+
       // Exclude non-AC Infinity entities
       const excludePatterns = ['import', 'export', 'billing', 'grid'];
       if (excludePatterns.some(pattern => entityLower.includes(pattern) || friendlyName.includes(pattern))) {
         return false;
       }
-      
+
       // Exclude cloud/alexa/google but only if they're not AC Infinity port entities
-      if ((entityLower.includes('cloud') || entityLower.includes('alexa') || entityLower.includes('google')) 
+      if ((entityLower.includes('cloud') || entityLower.includes('alexa') || entityLower.includes('google'))
           && !entityLower.includes('port_') && !friendlyName.includes('port')) {
         return false;
       }
-      
-      // Include any entity with tent/controller/probe patterns OR port patterns
+
+      // Include any entity with tent/controller/probe patterns OR port patterns OR specialty sensors
       return (
         entityLower.includes('_tent_temperature') ||
         entityLower.includes('_tent_humidity') ||
@@ -97,6 +102,17 @@ class ACInfinityCard extends LitElement {
         entityLower.includes('connected_device_type') ||
         entityLower.includes('device_type') ||
         entityLower.includes('current_power') ||
+        // Moisture sensors
+        entityLower.includes('moisture') ||
+        entityLower.includes('soil') ||
+        // CO2 sensors
+        entityLower.includes('co2') ||
+        entityLower.includes('carbon_dioxide') ||
+        // UV sensors
+        entityLower.includes('uv_') ||
+        entityLower.includes('_uv') ||
+        entityLower.includes('ultraviolet') ||
+        // Friendly name patterns
         friendlyName.includes('tent temperature') ||
         friendlyName.includes('tent humidity') ||
         friendlyName.includes('tent vpd') ||
@@ -106,7 +122,13 @@ class ACInfinityCard extends LitElement {
         friendlyName.includes('port number') ||
         friendlyName.includes('port status') ||
         friendlyName.includes('connected device type') ||
-        friendlyName.includes('current power')
+        friendlyName.includes('current power') ||
+        friendlyName.includes('moisture') ||
+        friendlyName.includes('soil') ||
+        friendlyName.includes('co2') ||
+        friendlyName.includes('carbon dioxide') ||
+        friendlyName.includes('uv') ||
+        friendlyName.includes('ultraviolet')
       );
     });
 
@@ -137,6 +159,7 @@ class ACInfinityCard extends LitElement {
 
       if (!controllers[deviceId]) {
         controllers[deviceId] = {
+          id: deviceId,
           name: controllerName,
           probe_temperature: null,
           probe_humidity: null,
@@ -144,6 +167,10 @@ class ACInfinityCard extends LitElement {
           controller_temperature: null,
           controller_humidity: null,
           controller_vpd: null,
+          // Specialty sensors
+          moisture: null,
+          co2: null,
+          uv: null,
           ports: []
         };
       }
@@ -169,10 +196,25 @@ class ACInfinityCard extends LitElement {
                   friendlyNameLower.includes('built-in humidity') || friendlyNameLower.includes('controller humidity')) 
                  && !entityName.includes('port')) {
         controllers[deviceId].controller_humidity = entity;
-      } else if ((entityName.includes('built_in_vpd') || entityName.includes('controller_vpd') || 
-                  friendlyNameLower.includes('built-in vpd') || friendlyNameLower.includes('controller vpd')) 
+      } else if ((entityName.includes('built_in_vpd') || entityName.includes('controller_vpd') ||
+                  friendlyNameLower.includes('built-in vpd') || friendlyNameLower.includes('controller vpd'))
                  && !entityName.includes('port')) {
         controllers[deviceId].controller_vpd = entity;
+      }
+      // Moisture sensors
+      else if (entityName.includes('moisture') || entityName.includes('soil') ||
+               friendlyNameLower.includes('moisture') || friendlyNameLower.includes('soil')) {
+        controllers[deviceId].moisture = entity;
+      }
+      // CO2 sensors
+      else if (entityName.includes('co2') || entityName.includes('carbon_dioxide') ||
+               friendlyNameLower.includes('co2') || friendlyNameLower.includes('carbon dioxide')) {
+        controllers[deviceId].co2 = entity;
+      }
+      // UV sensors
+      else if (entityName.includes('uv_') || entityName.includes('_uv') || entityName.includes('ultraviolet') ||
+               friendlyNameLower.includes('uv') || friendlyNameLower.includes('ultraviolet')) {
+        controllers[deviceId].uv = entity;
       }
       // Check for port entities (v1.2.2+ has port_number sensor)
       if (entityName.includes('port_number')) {
@@ -296,12 +338,12 @@ class ACInfinityCard extends LitElement {
 
   _showPortsDialog() {
     // Show a dialog with all port controls
-    const controller = Object.values(this._entities || {})[0];
+    const controller = this._getSelectedController();
     if (!controller || !controller.ports || controller.ports.length === 0) {
       alert('No ports detected. Make sure your AC Infinity integration is properly configured.');
       return;
     }
-    
+
     // Open the first port's entity to show port controls
     const firstPort = controller.ports.find(p => p.state || p.power);
     if (firstPort) {
@@ -311,9 +353,9 @@ class ACInfinityCard extends LitElement {
 
   _showModeDialog() {
     // Show mode selection dialog
-    const controller = Object.values(this._entities || {})[0];
+    const controller = this._getSelectedController();
     if (!controller) return;
-    
+
     // Try to find a mode entity
     const modePort = controller.ports.find(p => p.mode);
     if (modePort && modePort.mode) {
@@ -326,9 +368,9 @@ class ACInfinityCard extends LitElement {
 
   _showSettingsDialog() {
     // Show settings/configuration dialog
-    const controller = Object.values(this._entities || {})[0];
+    const controller = this._getSelectedController();
     if (!controller) return;
-    
+
     // Open controller temperature entity which typically has device info
     this._handleEntityClick(controller.controller_temperature || controller.probe_temperature);
   }
@@ -343,6 +385,28 @@ class ACInfinityCard extends LitElement {
     return `${hours}:${minutes} ${ampm}`;
   }
 
+  _getSelectedController() {
+    const controllers = this._entities || {};
+    const controllerList = Object.values(controllers);
+
+    if (controllerList.length === 0) {
+      return null;
+    }
+
+    // If a specific controller is selected in config, use it
+    if (this.config?.selected_controller) {
+      const selected = controllers[this.config.selected_controller];
+      if (selected) return selected;
+    }
+
+    // Otherwise return the first one
+    return controllerList[0];
+  }
+
+  _getControllerList() {
+    return Object.values(this._entities || {});
+  }
+
   render() {
     if (!this._hass) {
       return html`<ha-card>Loading...</ha-card>`;
@@ -350,23 +414,35 @@ class ACInfinityCard extends LitElement {
 
     let controller;
     if (this.config?.probe_temp_entity) {
+      // Manual entity configuration
       controller = {
+        id: 'manual',
+        name: this.config.title || 'AC Infinity Controller',
         probe_temperature: this.config.probe_temp_entity,
         probe_humidity: this.config.probe_humidity_entity,
         probe_vpd: this.config.probe_vpd_entity,
         controller_temperature: this.config.controller_temp_entity,
         controller_humidity: this.config.controller_humidity_entity,
         controller_vpd: this.config.controller_vpd_entity,
+        moisture: this.config.moisture_entity,
+        co2: this.config.co2_entity,
+        uv: this.config.uv_entity,
         ports: []
       };
     } else {
-      controller = Object.values(this._entities || {})[0] || {
+      // Auto-detect: use selected controller or first available
+      controller = this._getSelectedController() || {
+        id: null,
+        name: 'AC Infinity Controller',
         probe_temperature: null,
         probe_humidity: null,
         probe_vpd: null,
         controller_temperature: null,
         controller_humidity: null,
         controller_vpd: null,
+        moisture: null,
+        co2: null,
+        uv: null,
         ports: []
       };
     }
@@ -374,9 +450,17 @@ class ACInfinityCard extends LitElement {
     const probeTemp = this._formatValue(this._getEntityState(controller.probe_temperature));
     const probeHumidity = this._formatValue(this._getEntityState(controller.probe_humidity));
     const probeVpd = this._formatValue(this._getEntityState(controller.probe_vpd), 1);
-    
+
     const controllerTemp = this._formatValue(this._getEntityState(controller.controller_temperature));
     const controllerHumidity = this._formatValue(this._getEntityState(controller.controller_humidity));
+
+    // Specialty sensors
+    const moisture = this._formatValue(this._getEntityState(controller.moisture));
+    const co2 = this._formatValue(this._getEntityState(controller.co2));
+    const uv = this._formatValue(this._getEntityState(controller.uv));
+
+    // Check if we have specialty sensors to display
+    const hasSpecialtySensors = controller.moisture || controller.co2 || controller.uv;
     
     const ports = [];
     for (let i = 1; i <= 8; i++) {
@@ -531,7 +615,7 @@ class ACInfinityCard extends LitElement {
                   <span class="value-unit">°F</span>
                 </div>
               </div>
-              
+
               <!-- Controller Humidity -->
               <div class="value-row-with-label" @click="${() => this._handleEntityClick(controller.controller_humidity)}">
                 <span class="value-label">BUILT-IN HUMIDITY</span>
@@ -540,34 +624,66 @@ class ACInfinityCard extends LitElement {
                   <span class="value-unit">%</span>
                 </div>
               </div>
-              
-              <!-- Current Level -->
-              <div class="value-row-with-label">
-                <span class="value-label">CURRENT LEVEL</span>
+
+              <!-- Moisture Sensor (if available) -->
+              ${controller.moisture ? html`
+              <div class="value-row-with-label" @click="${() => this._handleEntityClick(controller.moisture)}">
+                <span class="value-label">MOISTURE</span>
                 <div class="value-content">
-                  <span class="value-number">6</span>
-                </div>
-              </div>
-              
-              <!-- Countdown -->
-              <div class="value-row-with-label">
-                <span class="value-label">COUNTDOWN</span>
-                <div class="value-content">
-                  <span class="value-number">${probeHumidity}</span>
+                  <span class="value-number">${moisture}</span>
                   <span class="value-unit">%</span>
                 </div>
               </div>
-              
-              <!-- Set To -->
-              <div class="value-row-with-label">
-                <span class="value-label">SET TO</span>
+              ` : ''}
+
+              <!-- CO2 Sensor (if available) -->
+              ${controller.co2 ? html`
+              <div class="value-row-with-label" @click="${() => this._handleEntityClick(controller.co2)}">
+                <span class="value-label">CO2</span>
                 <div class="value-content">
-                  <span class="value-number">${controllerTemp}</span>
-                  <span class="value-unit">°F</span>
+                  <span class="value-number">${co2}</span>
+                  <span class="value-unit">ppm</span>
                 </div>
               </div>
+              ` : ''}
+
+              <!-- UV Sensor (if available) -->
+              ${controller.uv ? html`
+              <div class="value-row-with-label" @click="${() => this._handleEntityClick(controller.uv)}">
+                <span class="value-label">UV INDEX</span>
+                <div class="value-content">
+                  <span class="value-number">${uv}</span>
+                  <span class="value-unit"></span>
+                </div>
+              </div>
+              ` : ''}
+
+              <!-- Show placeholders if no specialty sensors -->
+              ${!hasSpecialtySensors ? html`
+              <div class="value-row-with-label placeholder">
+                <span class="value-label">MOISTURE</span>
+                <div class="value-content">
+                  <span class="value-number">--</span>
+                  <span class="value-unit">%</span>
+                </div>
+              </div>
+              <div class="value-row-with-label placeholder">
+                <span class="value-label">CO2</span>
+                <div class="value-content">
+                  <span class="value-number">--</span>
+                  <span class="value-unit">ppm</span>
+                </div>
+              </div>
+              <div class="value-row-with-label placeholder">
+                <span class="value-label">UV INDEX</span>
+                <div class="value-content">
+                  <span class="value-number">--</span>
+                  <span class="value-unit"></span>
+                </div>
+              </div>
+              ` : ''}
             </div>
-            
+
             <!-- UP/DOWN BUTTON COLUMN -->
             <div class="updown-column">
               <button class="updown-button">
@@ -580,7 +696,7 @@ class ACInfinityCard extends LitElement {
           <!-- BOTTOM BAR: Brand -->
           <div class="bottom-bar">
             <span class="brand">AC INFINITY</span>
-            <span class="version">v1.0.29</span>
+            <span class="version">v1.1.0</span>
           </div>
         </div>
       </ha-card>
@@ -951,7 +1067,12 @@ class ACInfinityCard extends LitElement {
         gap: 4px;
         cursor: pointer;
       }
-      
+
+      .value-row-with-label.placeholder {
+        opacity: 0.4;
+        cursor: default;
+      }
+
       .value-label {
         font-size: 9px;
         color: #6db3d4;
@@ -1376,7 +1497,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.0.29 ',
+  '%c AC-INFINITY-CARD %c Version 1.1.0 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
