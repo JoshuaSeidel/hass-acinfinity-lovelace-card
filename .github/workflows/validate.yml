@@ -12,12 +12,9 @@ jobs:
     name: Validate
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: HACS validation
         uses: hacs/action@main
         with:
           category: plugin
-
-      - name: Hassfest validation
-        uses: home-assistant/actions/hassfest@master
