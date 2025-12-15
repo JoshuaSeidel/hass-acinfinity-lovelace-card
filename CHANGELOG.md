@@ -2,6 +2,69 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.19] - 2024-12-15
+
+### Fixed - device_type Config Override Not Working 🔧
+
+**CRITICAL FIX:** v1.2.17 broke the `device_type` config option - it was being ignored!
+
+**The Problem:**
+- In v1.2.17, added multi-controller selection
+- Bug: When using `auto_detect: true`, the `device_type` config was not applied
+- Result: All cards showing ports/controller layout regardless of `device_type: outlet` setting
+
+**The Solution:**
+- ✅ **Added device_type override** - Now checks `config.device_type` after auto-detection
+- ✅ **Override logging** - Console shows when device_type is being overridden
+- ✅ **Applies to all modes** - Works with auto-detect AND selected_controller
+
+**Console Output:**
+```
+[AC Infinity Card] Overriding device_type: controller → outlet
+```
+
+**What This Fixes:**
+- ❌ `device_type: outlet` being ignored → ✅ Outlet display mode works
+- ❌ All cards showing controller layout → ✅ Each card respects its device_type
+- ❌ No way to force outlet mode → ✅ Manual override works again
+
+**How It Works Now:**
+1. Auto-detect finds controller and determines device_type
+2. If `config.device_type` is set, it overrides the detected type
+3. Card displays according to the final device_type
+
+**Example Config:**
+```yaml
+type: custom:ac-infinity-card
+title: Smart Outlets
+auto_detect: true
+device_type: outlet  # ← Now works again!
+selected_controller: "device_id_here"
+```
+
+**Regression Note:**
+This was a regression introduced in v1.2.17. If you're on v1.2.17 or v1.2.18, update to v1.2.19 to fix the device_type override.
+
+## [1.2.18] - 2024-12-15
+
+### Added - Blank Card Rendering Diagnostics 🔍
+
+**Additional logging** to diagnose blank card display issues.
+
+**New Debug Output:**
+- 🔍 **Render completion** - Confirms render finishes successfully
+- 🔍 **Port details table** - Shows port entity assignments in table format
+- 🔍 **Environmental sensors check** - Shows if sensors detected
+- 🔍 **Device type logging** - Confirms controller vs outlet detection
+
+**Console Output:**
+```
+[AC Infinity Card] Render completed successfully! ✅
+[AC Infinity Card] Ports for display (8): [table]
+Has environmental sensors: true
+Device type: controller, Is outlet: false
+```
+
 ## [1.2.17] - 2024-12-15
 
 ### Added - Multi-Controller Detection and Selection Guide 🎯
