@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.14';
+const VERSION = '1.2.15';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -26,24 +26,42 @@ class ACInfinityCard extends LitElement {
       throw new Error('Invalid configuration');
     }
 
+    // Helper function to trim entity IDs and handle empty strings
+    const cleanEntityId = (entityId) => {
+      if (!entityId) return null;
+      const cleaned = entityId.trim();
+      return cleaned === '' ? null : cleaned;
+    };
+
     this.config = {
       title: config.title || 'AC Infinity Controller',
       show_ports: config.show_ports !== false,
       auto_detect: config.auto_detect !== false,
       selected_controller: config.selected_controller || null, // Controller device_id to display
       device_type: config.device_type || null, // 'controller', 'outlet', or null for auto-detect
-      probe_temp_entity: config.probe_temp_entity || null,
-      probe_humidity_entity: config.probe_humidity_entity || null,
-      probe_vpd_entity: config.probe_vpd_entity || null,
-      controller_temp_entity: config.controller_temp_entity || null,
-      controller_humidity_entity: config.controller_humidity_entity || null,
-      controller_vpd_entity: config.controller_vpd_entity || null,
+      probe_temp_entity: cleanEntityId(config.probe_temp_entity),
+      probe_humidity_entity: cleanEntityId(config.probe_humidity_entity),
+      probe_vpd_entity: cleanEntityId(config.probe_vpd_entity),
+      controller_temp_entity: cleanEntityId(config.controller_temp_entity),
+      controller_humidity_entity: cleanEntityId(config.controller_humidity_entity),
+      controller_vpd_entity: cleanEntityId(config.controller_vpd_entity),
       // New sensor entity config options
-      moisture_entity: config.moisture_entity || null,
-      co2_entity: config.co2_entity || null,
-      uv_entity: config.uv_entity || null,
+      moisture_entity: cleanEntityId(config.moisture_entity),
+      co2_entity: cleanEntityId(config.co2_entity),
+      uv_entity: cleanEntityId(config.uv_entity),
       ...config
     };
+    
+    // Debug: log if we found manual entity configuration
+    if (this.config.probe_temp_entity || this.config.probe_humidity_entity) {
+      console.log('%c[AC Infinity Card] Manual entity configuration detected:', 'color: #FF9800; font-weight: bold');
+      console.log('Probe Temp:', this.config.probe_temp_entity);
+      console.log('Probe Humidity:', this.config.probe_humidity_entity);
+      console.log('Probe VPD:', this.config.probe_vpd_entity);
+      console.log('Controller Temp:', this.config.controller_temp_entity);
+      console.log('Controller Humidity:', this.config.controller_humidity_entity);
+      console.log('Controller VPD:', this.config.controller_vpd_entity);
+    }
   }
 
   set hass(hass) {
