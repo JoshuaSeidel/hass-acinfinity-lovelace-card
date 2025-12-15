@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.19';
+const VERSION = '1.2.20';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -1055,6 +1055,8 @@ class ACInfinityCard extends LitElement {
       ha-card {
         overflow: hidden;
         background: transparent;
+        display: block;
+        min-height: 500px;
       }
       
       .ac-infinity-card {
@@ -1067,6 +1069,9 @@ class ACInfinityCard extends LitElement {
         width: 100%;
         max-width: 1400px;
         margin: 0 auto;
+        min-height: 500px;
+        display: block;
+        position: relative;
       }
       
       ha-card {
