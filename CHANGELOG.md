@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.2] - 2024-12-15
+
+### Fixed - Major Detection Improvements 🔧
+This release completely overhauls the entity auto-detection system to be more reliable and robust.
+
+**Sensor Detection Fixes:**
+- ✅ **Added integration attribute check** - Now properly checks `integration: 'ac_infinity'` attribute (most reliable method)
+- ✅ **Improved pattern matching** - More comprehensive patterns for temperature, humidity, VPD, and port entities
+- ✅ **Better exclusion filters** - Excludes utility meters and other non-AC Infinity entities more effectively
+- ✅ **Fallback detection** - If integration attribute is missing, uses smart pattern matching as backup
+
+**Port Detection Fixes:**
+- ✅ **Simplified port detection logic** - Removed complex 3-pass system that was causing missed entities
+- ✅ **Regex-based port matching** - Now matches `port_1`, `port 1`, `port_1_status`, etc. more reliably
+- ✅ **Entity type awareness** - Better handling of switch, sensor, number, and select entities
+- ✅ **Prevents duplicate assignments** - Each port property only assigned once to avoid conflicts
+- ✅ **Flexible naming support** - Works with various entity naming conventions
+
+**Enhanced Logging:**
+- 🔍 **Detailed console output** - See exactly what entities were found and how they were grouped
+- 🔍 **Color-coded logs** - Easy to spot in browser console
+- 🔍 **Per-controller breakdown** - Shows all sensors and ports detected for each controller
+- 🔍 **Debug-friendly** - Helps troubleshoot detection issues quickly
+
+**What This Fixes:**
+- Sensors not auto-detecting → Now detects via integration attribute + pattern matching
+- Ports not being detected → Simplified logic catches more port entity variations
+- Silent failures → Enhanced logging shows exactly what was found/missed
+- Multiple controllers → Better device_id grouping and controller selection
+
 ## [1.0.6] - 2024-12-03
 
 ### COMPLETE VISUAL REWRITE - EXACT HARDWARE MATCH
