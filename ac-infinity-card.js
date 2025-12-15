@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.13';
+const VERSION = '1.2.14';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -631,6 +631,10 @@ class ACInfinityCard extends LitElement {
       return html`<ha-card>Loading...</ha-card>`;
     }
 
+    console.log('%c[AC Infinity Card] RENDER CALLED', 'color: #FF6B6B; font-weight: bold; font-size: 14px');
+    console.log('_entities:', this._entities);
+    console.log('_entities count:', this._entities ? Object.keys(this._entities).length : 0);
+
     let controller;
     if (this.config?.probe_temp_entity) {
       // Manual entity configuration
@@ -651,21 +655,28 @@ class ACInfinityCard extends LitElement {
       };
     } else {
       // Auto-detect: use selected controller or first available
-      controller = this._getSelectedController() || {
-        id: null,
-        name: 'AC Infinity Controller',
-        device_type: 'controller',
-        probe_temperature: null,
-        probe_humidity: null,
-        probe_vpd: null,
-        controller_temperature: null,
-        controller_humidity: null,
-        controller_vpd: null,
-        moisture: null,
-        co2: null,
-        uv: null,
-        ports: []
-      };
+      controller = this._getSelectedController();
+      
+      console.log('Selected controller:', controller);
+      
+      if (!controller) {
+        console.warn('%c[AC Infinity Card] No controller selected - using fallback', 'color: #FF9800; font-weight: bold');
+        controller = {
+          id: null,
+          name: 'AC Infinity Controller',
+          device_type: 'controller',
+          probe_temperature: null,
+          probe_humidity: null,
+          probe_vpd: null,
+          controller_temperature: null,
+          controller_humidity: null,
+          controller_vpd: null,
+          moisture: null,
+          co2: null,
+          uv: null,
+          ports: []
+        };
+      }
     }
     
     // Determine display configuration based on device type
@@ -679,6 +690,14 @@ class ACInfinityCard extends LitElement {
 
     const controllerTemp = this._formatValue(this._getEntityState(controller.controller_temperature));
     const controllerHumidity = this._formatValue(this._getEntityState(controller.controller_humidity));
+    
+    console.log('%c[AC Infinity Card] Display Values:', 'color: #9C27B0; font-weight: bold');
+    console.log('Rendering device:', controller.name, `[${controller.device_type}]`);
+    console.log('Probe Temp:', probeTemp, '(from', controller.probe_temperature, ')');
+    console.log('Probe Humidity:', probeHumidity, '(from', controller.probe_humidity, ')');
+    console.log('Probe VPD:', probeVpd, '(from', controller.probe_vpd, ')');
+    console.log('Controller Temp:', controllerTemp, '(from', controller.controller_temperature, ')');
+    console.log('Controller Humidity:', controllerHumidity, '(from', controller.controller_humidity, ')');
 
     // Specialty sensors
     const moisture = this._formatValue(this._getEntityState(controller.moisture));
@@ -707,6 +726,15 @@ class ACInfinityCard extends LitElement {
         mode: null
       });
     }
+    
+    console.log(`Ports for display (${ports.length}):`, ports.map(p => ({
+      num: p.number,
+      name: p.name,
+      hasStatus: !!p.status,
+      hasState: !!p.state,
+      hasPower: !!p.power,
+      hasDeviceType: !!p.device_type
+    })));
 
     return html`
       <ha-card>
