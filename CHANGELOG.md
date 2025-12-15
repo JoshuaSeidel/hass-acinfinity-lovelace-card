@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.15] - 2024-12-15
+
+### Fixed - Trim Whitespace from Manual Entity Configuration 🔧
+
+**THE FIX:** Card now properly trims whitespace from manually configured entity IDs!
+
+**The Problem:**
+- Debug logging revealed entity IDs with trailing spaces: `sensor.second_controller_temp ` (notice the space)
+- These malformed entity IDs don't exist in Home Assistant, causing all values to show as `--`
+- Issue was in manual entity configuration (YAML or visual editor saves)
+
+**The Solution:**
+- ✅ **Added `cleanEntityId()` function** - Trims whitespace from all entity ID configs
+- ✅ **Handles empty strings** - Converts empty/whitespace-only strings to `null`
+- ✅ **Debug logging added** - Shows manual entity configuration when detected
+- ✅ **Applied to all entity configs** - probe_temp, probe_humidity, controller_temp, etc.
+
+**What This Fixes:**
+- ❌ Entity IDs with trailing/leading spaces → ✅ Clean entity IDs
+- ❌ Card showing all dashes despite entities existing → ✅ Values display correctly
+- ❌ Silent failures with bad entity IDs → ✅ Console shows manual config being used
+
+**Console Output:**
+When manual configuration is detected, you'll now see:
+```
+[AC Infinity Card] Manual entity configuration detected:
+Probe Temp: sensor.tent_temperature
+Probe Humidity: sensor.tent_humidity
+...
+```
+
+**For Users:**
+If you have manual entity configuration (not using auto_detect), this update will automatically fix entity IDs with extra whitespace. No action needed!
+
 ## [1.2.14] - 2024-12-15
 
 ### Added - Debug Logging for Card Population Diagnosis 🔍
