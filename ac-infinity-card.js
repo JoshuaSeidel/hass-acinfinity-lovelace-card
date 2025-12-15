@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.2';
+const VERSION = '1.2.3';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -76,27 +76,71 @@ class ACInfinityCard extends LitElement {
 
     const entities = Object.keys(this._hass.states);
 
-    // Find ALL AC Infinity entities - ONLY use integration attribute for reliability
+    console.log('%c[AC Infinity Card] Entity Detection', 'color: #4CAF50; font-weight: bold');
+    console.log(`Scanning ${entities.length} total entities...`);
+
+    // Find ALL AC Infinity entities using entity registry lookup
+    // The entity registry tracks which integration owns each entity
     let acInfinityEntities = entities.filter(entity => {
       const state = this._hass.states[entity];
       if (!state) return false;
 
-      // ONLY check integration attribute - this is the most reliable method
-      // The AC Infinity integration properly sets this attribute on all its entities
+      // Method 1: Check entity registry (most reliable - this is what integration_entities() uses)
+      const entityEntry = this._hass.entities?.[entity];
+      if (entityEntry?.platform === 'ac_infinity' || entityEntry?.integration === 'ac_infinity') {
+        return true;
+      }
+
+      // Method 2: Check state attributes for integration
       const integration = state.attributes?.integration;
-      return integration === 'ac_infinity';
+      if (integration === 'ac_infinity') {
+        return true;
+      }
+
+      // Method 3: Check for entity_id patterns that indicate AC Infinity
+      // Format: domain.devicename_sensortype
+      const entityIdParts = entity.split('.');
+      if (entityIdParts.length >= 2) {
+        const entityName = entityIdParts[1];
+        // AC Infinity entities often have distinctive patterns
+        const acInfinityPatterns = [
+          /^[a-z_]*(?:controller|tent|probe|port|outlet).*(?:temperature|humidity|vpd|power|status|mode)/i,
+          /^fig.*(?:port|outlet|inline|power|strip)/i,
+          /orchard.*moisture/i
+        ];
+        
+        if (acInfinityPatterns.some(pattern => pattern.test(entityName))) {
+          return true;
+        }
+      }
+
+      // Method 4: Check friendly name for AC Infinity indicators
+      const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
+      const acInfinityKeywords = ['fig power strip', 'figs port', 'figs inline', 'orchard moisture'];
+      if (acInfinityKeywords.some(keyword => friendlyName.includes(keyword))) {
+        return true;
+      }
+
+      return false;
     });
 
-    console.log('%c[AC Infinity Card] Entity Detection', 'color: #4CAF50; font-weight: bold');
-    console.log(`Found ${acInfinityEntities.length} AC Infinity entities (integration='ac_infinity'):`, acInfinityEntities);
+    console.log(`%c[AC Infinity Card] Found ${acInfinityEntities.length} AC Infinity entities`, 
+      acInfinityEntities.length > 0 ? 'color: #4CAF50; font-weight: bold' : 'color: #f44336; font-weight: bold');
     
     if (acInfinityEntities.length === 0) {
-      console.warn('%c[AC Infinity Card] No AC Infinity entities found!', 'color: #FF9800; font-weight: bold');
-      console.warn('Make sure:');
-      console.warn('1. AC Infinity integration is installed and configured');
-      console.warn('2. Your devices are showing in Settings → Devices & Services → AC Infinity');
-      console.warn('3. Entities have integration="ac_infinity" attribute');
+      console.error('%c[AC Infinity Card] No AC Infinity entities found!', 'color: #f44336; font-weight: bold');
+      console.error('Debug info:');
+      console.error('- Entity registry available:', !!this._hass.entities);
+      console.error('- Total entities:', entities.length);
+      console.error('\nTroubleshooting:');
+      console.error('1. Check Settings → Devices & Services → AC Infinity');
+      console.error('2. Verify devices show entities in Developer Tools → States');
+      console.error('3. Try typing an AC Infinity entity ID here to see its data:');
+      console.error('   > this._hass.states["sensor.YOUR_ENTITY_ID"]');
+      return;
     }
+    
+    console.log('Sample AC Infinity entities:', acInfinityEntities.slice(0, 5));
     
     const portEntities = acInfinityEntities.filter(e => {
       const entityLower = e.toLowerCase();

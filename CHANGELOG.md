@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.3] - 2024-12-15
+
+### Fixed - Entity Registry Detection 🎯
+Critical fix for entity detection using Home Assistant's entity registry.
+
+**The Problem:**
+- `integration_entities('ac_infinity')` template works in HA
+- But entities don't have `integration='ac_infinity'` in state attributes
+- Card was finding 0 entities despite integration working correctly
+
+**The Solution:**
+- ✅ **Use entity registry** - Check `hass.entities[entity].platform` and `hass.entities[entity].integration`
+- ✅ **Multiple detection methods** - 4 fallback methods to ensure detection
+- ✅ **Pattern matching** - Recognize "Fig Power Strip", "Figs Port", "Orchard Moisture" patterns
+- ✅ **Entity ID patterns** - Match typical AC Infinity entity naming
+
+**Detection Methods (in order):**
+1. **Entity Registry Lookup** - `hass.entities[entity].platform === 'ac_infinity'` (most reliable)
+2. **State Attributes** - `state.attributes.integration === 'ac_infinity'`
+3. **Entity ID Patterns** - Match controller/tent/probe/port/outlet patterns
+4. **Friendly Name Keywords** - "Fig Power Strip", "Figs Port", "Orchard Moisture"
+
+**Enhanced Logging:**
+- Shows which detection method found entities
+- Lists sample entities found
+- Shows entity registry availability
+- Better error messages with troubleshooting steps
+
+**What This Fixes:**
+- ❌ 0 entities found → ✅ All AC Infinity entities detected
+- ❌ "No devices detected" → ✅ Controllers and outlets found
+- ❌ Blank port display → ✅ Ports populated with data
+
 ## [1.2.2] - 2024-12-15
 
 ### Fixed - Strict Integration Filtering & Enhanced Debugging 🔍
