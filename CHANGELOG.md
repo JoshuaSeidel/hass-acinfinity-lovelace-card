@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.5] - 2024-12-15
+
+### Fixed - SIMPLIFIED: Entity Registry Only! 🎯
+**The RIGHT way** - Now uses ONLY entity registry, exactly like `integration_entities('ac_infinity')`.
+
+**What Changed:**
+```javascript
+// OLD (v1.2.4) - Still had pattern matching fallbacks
+entityEntry?.platform === 'ac_infinity' || 
+state.attributes?.integration === 'ac_infinity' ||
+/^sensor\.figs_/.test(entity) ||  // ← Still trying patterns!
+
+// NEW (v1.2.5) - Entity registry ONLY, like template function
+entityEntry?.platform === 'ac_infinity'  // ← That's it!
+```
+
+**Why This Is Better:**
+- ✅ **Matches `integration_entities()` exactly** - Same logic as templates
+- ✅ **No false positives** - Only entities owned by ac_infinity integration
+- ✅ **No hardcoded patterns** - Works with ANY AC Infinity device name
+- ✅ **Future proof** - Will work with new AC Infinity devices automatically
+- ✅ **Simpler code** - One line instead of 40!
+
+**This fixes:**
+- Entity count now matches `integration_entities('ac_infinity').length`
+- No more `input_number` helpers detected
+- No more generic `binary_sensor.new_device_*` entities
+- Only real AC Infinity integration entities
+
 ## [1.2.4] - 2024-12-15
 
 ### Fixed - Strict Entity Filtering 🎯
