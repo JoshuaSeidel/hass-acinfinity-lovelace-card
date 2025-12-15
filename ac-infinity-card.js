@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.5';
+const VERSION = '1.2.6-debug';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -79,6 +79,27 @@ class ACInfinityCard extends LitElement {
     console.log('%c[AC Infinity Card] Entity Detection', 'color: #4CAF50; font-weight: bold');
     console.log(`Scanning ${entities.length} total entities...`);
 
+    // DEBUG: Check what's in the entity registry
+    console.log('%c[DEBUG] Entity Registry Check', 'color: #FF9800; font-weight: bold');
+    console.log('Entity registry available:', !!this._hass.entities);
+    console.log('Total entities to check:', entities.length);
+    
+    // Sample first few entities to see registry structure
+    const sampleEntities = entities.slice(0, 10);
+    sampleEntities.forEach(entity => {
+      const entityEntry = this._hass.entities?.[entity];
+      if (entityEntry) {
+        console.log(`Entity: ${entity}`, {
+          platform: entityEntry.platform,
+          integration: entityEntry.integration,
+          device_id: entityEntry.device_id,
+          entity_id: entityEntry.entity_id
+        });
+      } else {
+        console.log(`Entity: ${entity} - NO REGISTRY ENTRY`);
+      }
+    });
+    
     // Find ALL AC Infinity entities using entity registry lookup ONLY
     // This matches EXACTLY what integration_entities('ac_infinity') does in templates
     let acInfinityEntities = entities.filter(entity => {
@@ -88,7 +109,14 @@ class ACInfinityCard extends LitElement {
       
       // Check if this entity belongs to the ac_infinity integration
       // This is EXACTLY what integration_entities() template function uses
-      return entityEntry?.platform === 'ac_infinity';
+      const isAcInfinity = entityEntry?.platform === 'ac_infinity';
+      
+      // DEBUG: Log first 5 matches to see what we're getting
+      if (isAcInfinity && acInfinityEntities.length < 5) {
+        console.log(`✅ AC Infinity entity found: ${entity}`, entityEntry);
+      }
+      
+      return isAcInfinity;
     });
 
     console.log(`%c[AC Infinity Card] Found ${acInfinityEntities.length} AC Infinity entities`, 
