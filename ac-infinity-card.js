@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.20';
+const VERSION = '1.2.21';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -292,40 +292,52 @@ class ACInfinityCard extends LitElement {
           friendlyNameLower.includes('tent temperature') || friendlyNameLower.includes('probe temperature') ||
           friendlyNameLower.includes('tent sensor') || friendlyNameLower.includes('tent probe') ||
           (friendlyNameLower.includes('tent') && deviceClass === 'temperature')) {
-        controllers[deviceId].probe_temperature = entity;
+        if (!controllers[deviceId].probe_temperature) {
+          controllers[deviceId].probe_temperature = entity;
+        }
       } 
       // Detect humidity sensors (probe/tent sensors)
       else if (entityName.includes('tent_humidity') || entityName.includes('probe_humidity') || 
                friendlyNameLower.includes('tent humidity') || friendlyNameLower.includes('probe humidity') ||
                (friendlyNameLower.includes('tent') && deviceClass === 'humidity')) {
-        controllers[deviceId].probe_humidity = entity;
+        if (!controllers[deviceId].probe_humidity) {
+          controllers[deviceId].probe_humidity = entity;
+        }
       } 
       // Detect VPD sensors (probe/tent sensors)
       else if (entityName.includes('tent_vpd') || entityName.includes('probe_vpd') || 
                friendlyNameLower.includes('tent vpd') || friendlyNameLower.includes('probe vpd') ||
                (friendlyNameLower.includes('tent') && (entityName.includes('vpd') || friendlyNameLower.includes('vpd')))) {
-        controllers[deviceId].probe_vpd = entity;
+        if (!controllers[deviceId].probe_vpd) {
+          controllers[deviceId].probe_vpd = entity;
+        }
       }
       // Detect controller/built-in temperature
       else if ((entityName.includes('built_in_temperature') || entityName.includes('controller_temperature') || 
                 friendlyNameLower.includes('built-in temperature') || friendlyNameLower.includes('controller temperature') ||
                 (friendlyNameLower.includes('controller') && deviceClass === 'temperature'))
                && !entityName.includes('port') && !friendlyNameLower.includes('port')) {
-        controllers[deviceId].controller_temperature = entity;
+        if (!controllers[deviceId].controller_temperature) {
+          controllers[deviceId].controller_temperature = entity;
+        }
       } 
       // Detect controller/built-in humidity
       else if ((entityName.includes('built_in_humidity') || entityName.includes('controller_humidity') || 
                 friendlyNameLower.includes('built-in humidity') || friendlyNameLower.includes('controller humidity') ||
                 (friendlyNameLower.includes('controller') && deviceClass === 'humidity'))
                  && !entityName.includes('port') && !friendlyNameLower.includes('port')) {
-        controllers[deviceId].controller_humidity = entity;
+        if (!controllers[deviceId].controller_humidity) {
+          controllers[deviceId].controller_humidity = entity;
+        }
       } 
       // Detect controller/built-in VPD
       else if ((entityName.includes('built_in_vpd') || entityName.includes('controller_vpd') ||
                 friendlyNameLower.includes('built-in vpd') || friendlyNameLower.includes('controller vpd') ||
                 (friendlyNameLower.includes('controller') && (entityName.includes('vpd') || friendlyNameLower.includes('vpd'))))
                  && !entityName.includes('port') && !friendlyNameLower.includes('port')) {
-        controllers[deviceId].controller_vpd = entity;
+        if (!controllers[deviceId].controller_vpd) {
+          controllers[deviceId].controller_vpd = entity;
+        }
       }
 
       // Specialty sensors - check independently (not else-if) to avoid conflicts
@@ -333,19 +345,25 @@ class ACInfinityCard extends LitElement {
       if ((entityName.includes('moisture') || entityName.includes('soil') ||
            friendlyNameLower.includes('moisture') || friendlyNameLower.includes('soil'))
           && !entityName.includes('port')) {
-        controllers[deviceId].moisture = entity;
+        if (!controllers[deviceId].moisture) {
+          controllers[deviceId].moisture = entity;
+        }
       }
       // CO2 sensors
       if ((entityName.includes('co2') || entityName.includes('carbon_dioxide') ||
            friendlyNameLower.includes('co2') || friendlyNameLower.includes('carbon dioxide'))
           && !entityName.includes('port')) {
-        controllers[deviceId].co2 = entity;
+        if (!controllers[deviceId].co2) {
+          controllers[deviceId].co2 = entity;
+        }
       }
       // UV sensors
       if ((entityName.includes('uv') || entityName.includes('ultraviolet') ||
            friendlyNameLower.includes('uv') || friendlyNameLower.includes('ultraviolet'))
           && !entityName.includes('port')) {
-        controllers[deviceId].uv = entity;
+        if (!controllers[deviceId].uv) {
+          controllers[deviceId].uv = entity;
+        }
       }
       // Check for port/outlet entities using simplified detection
       const portMatch = entityName.match(/(?:port|outlet)[\s_]*(\d+)/i) || 
