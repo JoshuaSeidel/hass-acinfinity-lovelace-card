@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.24';
+const VERSION = '1.3.0';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -822,18 +822,29 @@ class ACInfinityCard extends LitElement {
     }
     
     console.log(`%c[AC Infinity Card] Ports for display (${ports.length}):`, 'color: #9C27B0; font-weight: bold');
-    console.table(ports.map(p => ({
-      port: p.number,
-      name: p.name,
-      hasStatus: !!p.status,
-      hasState: !!p.state,
-      hasPower: !!p.power,
-      hasDeviceType: !!p.device_type,
-      status_entity: p.status || 'none',
-      state_entity: p.state || 'none',
-      power_entity: p.power || 'none',
-      device_type_entity: p.device_type || 'none'
-    })));
+    console.table(ports.map(p => {
+      // Check for device_name attribute in any available entity
+      let deviceNameAttr = null;
+      const checkEntity = p.status || p.state || p.power || p.device_type;
+      if (checkEntity) {
+        const entityState = this._hass.states[checkEntity];
+        deviceNameAttr = entityState?.attributes?.device_name || null;
+      }
+      
+      return {
+        port: p.number,
+        name: p.name,
+        device_name_attr: deviceNameAttr || 'not found',
+        hasStatus: !!p.status,
+        hasState: !!p.state,
+        hasPower: !!p.power,
+        hasDeviceType: !!p.device_type,
+        status_entity: p.status || 'none',
+        state_entity: p.state || 'none',
+        power_entity: p.power || 'none',
+        device_type_entity: p.device_type || 'none'
+      };
+    }));
 
     return html`
       <ha-card>
@@ -906,20 +917,15 @@ class ACInfinityCard extends LitElement {
                     // Determine port/outlet name
                     let portName = port.name; // Default: "Port 1" or "Outlet 1"
                     
-                    // Try to get custom device name from entity friendly_name
-                    // The integration sets friendly names like "Humidifier Status" or "Grow Light Current Power"
-                    // We want to extract the device name part
-                    if (port.status || port.state || port.power) {
-                      const entityId = port.status || port.state || port.power;
+                    // Try to get custom device name from entity attributes (added in integration v1.3.0+)
+                    // The integration exposes the user-defined device name from the AC Infinity app
+                    if (port.status || port.state || port.power || port.device_type) {
+                      const entityId = port.status || port.state || port.power || port.device_type;
                       const entityState = this._hass.states[entityId];
-                      if (entityState && entityState.attributes && entityState.attributes.friendly_name) {
-                        const friendlyName = entityState.attributes.friendly_name;
-                        // Remove common suffixes to get device name
-                        const cleanName = friendlyName
-                          .replace(/ (Status|State|Current Power|Power|Mode|Port \d+.*|Outlet \d+.*)$/i, '')
-                          .trim();
-                        if (cleanName && cleanName.length > 0 && !cleanName.match(/^(Port|Outlet) \d+$/i)) {
-                          portName = cleanName;
+                      if (entityState && entityState.attributes && entityState.attributes.device_name) {
+                        const customName = entityState.attributes.device_name.trim();
+                        if (customName && customName.length > 0) {
+                          portName = customName;
                         }
                       }
                     }
