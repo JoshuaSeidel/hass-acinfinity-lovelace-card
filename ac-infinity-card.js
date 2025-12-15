@@ -68,79 +68,61 @@ class ACInfinityCard extends LitElement {
     const entities = Object.keys(this._hass.states);
 
     // Find ALL AC Infinity entities
+    // First, try to find entities with integration attribute (most reliable)
     let acInfinityEntities = entities.filter(entity => {
       const state = this._hass.states[entity];
       if (!state) return false;
 
+      // Check integration attribute first (most reliable method)
+      const integration = state.attributes?.integration;
+      if (integration === 'ac_infinity') {
+        return true;
+      }
+
       const entityLower = entity.toLowerCase();
       const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
-
-      // Exclude non-AC Infinity entities
-      const excludePatterns = ['import', 'export', 'billing', 'grid'];
+      
+      // Exclude obviously non-AC Infinity entities
+      const excludePatterns = ['import', 'export', 'billing', 'grid', 'utility_meter'];
       if (excludePatterns.some(pattern => entityLower.includes(pattern) || friendlyName.includes(pattern))) {
         return false;
       }
 
-      // Exclude cloud/alexa/google but only if they're not AC Infinity port entities
-      if ((entityLower.includes('cloud') || entityLower.includes('alexa') || entityLower.includes('google'))
-          && !entityLower.includes('port_') && !friendlyName.includes('port')) {
-        return false;
-      }
+      // Check for AC Infinity specific patterns in entity IDs or friendly names
+      // These patterns are specific enough to identify AC Infinity devices
+      const acInfinityPatterns = [
+        // Temperature/Humidity/VPD sensors
+        'tent_temperature', 'tent_humidity', 'tent_vpd',
+        'probe_temperature', 'probe_humidity', 'probe_vpd',
+        'controller_temperature', 'controller_humidity', 'controller_vpd',
+        'built_in_temperature', 'built_in_humidity', 'built_in_vpd',
+        // Port-related entities
+        'port_number', 'port_status', '_port_',
+        'connected_device_type', 'device_type',
+        'current_power', 'at_power', 'off_power', 'on_power',
+        // AC Infinity specific sensors
+        'moisture', 'soil_moisture',
+        'co2', 'carbon_dioxide',
+        'uv_index', 'uv'
+      ];
 
-      // Include any entity with tent/controller/probe patterns OR port patterns OR specialty sensors
-      return (
-        entityLower.includes('_tent_temperature') ||
-        entityLower.includes('_tent_humidity') ||
-        entityLower.includes('_tent_vpd') ||
-        entityLower.includes('probe_tent') ||
-        entityLower.includes('controller_temperature') ||
-        entityLower.includes('controller_humidity') ||
-        entityLower.includes('controller_vpd') ||
-        entityLower.includes('port_number') ||
-        entityLower.includes('port_status') ||
-        entityLower.includes('_port_') ||
-        entityLower.includes('connected_device_type') ||
-        entityLower.includes('device_type') ||
-        entityLower.includes('current_power') ||
-        // Moisture sensors
-        entityLower.includes('moisture') ||
-        entityLower.includes('soil') ||
-        // CO2 sensors
-        entityLower.includes('co2') ||
-        entityLower.includes('carbon_dioxide') ||
-        // UV sensors
-        entityLower.includes('uv_') ||
-        entityLower.includes('_uv') ||
-        entityLower.includes('ultraviolet') ||
-        // Friendly name patterns
-        friendlyName.includes('tent temperature') ||
-        friendlyName.includes('tent humidity') ||
-        friendlyName.includes('tent vpd') ||
-        friendlyName.includes('controller temperature') ||
-        friendlyName.includes('controller humidity') ||
-        friendlyName.includes('controller vpd') ||
-        friendlyName.includes('port number') ||
-        friendlyName.includes('port status') ||
-        friendlyName.includes('connected device type') ||
-        friendlyName.includes('current power') ||
-        friendlyName.includes('moisture') ||
-        friendlyName.includes('soil') ||
-        friendlyName.includes('co2') ||
-        friendlyName.includes('carbon dioxide') ||
-        friendlyName.includes('uv') ||
-        friendlyName.includes('ultraviolet')
+      // Check if entity matches any AC Infinity pattern
+      const matchesPattern = acInfinityPatterns.some(pattern => 
+        entityLower.includes(pattern) || friendlyName.includes(pattern.replace('_', ' '))
       );
+
+      return matchesPattern;
     });
 
-    console.log('AC Infinity entities found:', acInfinityEntities);
-    const portEntities = acInfinityEntities.filter(e => e.includes('port_') || e.includes('_port') || (this._hass.states[e]?.attributes?.friendly_name || '').toLowerCase().includes('port'));
-    console.log('Port entities found:', portEntities);
-    console.log('Full entity details:', acInfinityEntities.map(e => ({
-      id: e,
-      friendly_name: this._hass.states[e]?.attributes?.friendly_name,
-      device_id: this._hass.states[e]?.attributes?.device_id,
-      state: this._hass.states[e]?.state
-    })));
+    console.log('%c[AC Infinity Card] Entity Detection', 'color: #4CAF50; font-weight: bold');
+    console.log(`Found ${acInfinityEntities.length} AC Infinity entities:`, acInfinityEntities);
+    
+    const portEntities = acInfinityEntities.filter(e => {
+      const entityLower = e.toLowerCase();
+      const friendlyName = (this._hass.states[e]?.attributes?.friendly_name || '').toLowerCase();
+      return entityLower.match(/port[\s_]*\d+/i) || friendlyName.match(/port[\s_]*\d+/i);
+    });
+    console.log(`Found ${portEntities.length} port-related entities:`, portEntities);
 
     const controllers = {};
     
@@ -221,113 +203,66 @@ class ACInfinityCard extends LitElement {
           && !entityName.includes('port')) {
         controllers[deviceId].uv = entity;
       }
-      // Check for port entities
-      // First pass: detect port_number entities (v1.2.2+)
-      if (entityName.includes('port_number')) {
-        const portNum = parseInt(this._hass.states[entity]?.state);
-        if (!isNaN(portNum)) {
-          const portNamePrefix = friendlyName.split(' Port Number')[0] || `Port ${portNum}`;
-
-          let portObj = controllers[deviceId].ports.find(p => p.number === portNum);
-          if (!portObj) {
-            portObj = {
-              number: portNum,
-              name: portNamePrefix,
-              namePrefix: portNamePrefix.toLowerCase(),
-              state: null,
-              power: null,
-              mode: null,
-              status: null,
-              device_type: null,
-              port_device_id: state.attributes?.device_id
-            };
-            controllers[deviceId].ports.push(portObj);
-          }
-        }
-      }
-
-      // Second pass: detect port entities by pattern matching (for systems without port_number)
-      // Look for entities with "port" in their name/friendly_name
+      // Check for port entities using simplified detection
       const portMatch = entityName.match(/port[\s_]*(\d+)/i) || friendlyNameLower.match(/port[\s_]*(\d+)/i);
-      if (portMatch && !entityName.includes('port_number')) {
+      
+      if (portMatch) {
         const portNum = parseInt(portMatch[1]);
+        
         if (!isNaN(portNum) && portNum >= 1 && portNum <= 8) {
+          // Find or create port object
           let portObj = controllers[deviceId].ports.find(p => p.number === portNum);
+          
           if (!portObj) {
-            // Extract port name from friendly name
-            const portNamePrefix = friendlyName.split(/port[\s_]*\d+/i)[0]?.trim() || `Port ${portNum}`;
+            // Extract port name from friendly name (before "Port X" text)
+            let portNamePrefix = friendlyName.split(/port[\s_]*\d+/i)[0]?.trim();
+            if (!portNamePrefix || portNamePrefix === friendlyName) {
+              portNamePrefix = `Port ${portNum}`;
+            }
 
             portObj = {
               number: portNum,
               name: portNamePrefix,
-              namePrefix: portNamePrefix.toLowerCase(),
               state: null,
               power: null,
               mode: null,
               status: null,
-              device_type: null,
-              port_device_id: state.attributes?.device_id
+              device_type: null
             };
             controllers[deviceId].ports.push(portObj);
           }
 
-          // Assign this entity to the port based on its type
-          if (entityName.includes('port_status') || entityName.includes('status')) {
-            portObj.status = entity;
-          } else if (entityName.includes('device_type')) {
-            portObj.device_type = entity;
-          } else if (entityName.includes('current_power') || (state.entity_id.startsWith('sensor.') && entityName.includes('power'))) {
-            portObj.power = entity;
-          } else if (state.entity_id.startsWith('switch.')) {
-            portObj.state = entity;
-          } else if (state.entity_id.startsWith('number.') && (entityName.includes('power') || entityName.includes('speed'))) {
-            portObj.power = entity;
-          } else if (entityName.includes('mode') || state.entity_id.startsWith('select.')) {
-            portObj.mode = entity;
+          // Assign entity to appropriate port property based on entity type and name
+          const entityType = entity.split('.')[0]; // sensor, switch, number, select, etc.
+          
+          // Port status sensor (Active/Inactive)
+          if (entityName.includes('port_status') || (entityName.includes('status') && !entityName.includes('port_number'))) {
+            if (!portObj.status) portObj.status = entity;
           }
-        }
-      }
-
-      // Third pass: for port_number entities, associate other entities by matching device_id or name prefix
-      for (const portObj of controllers[deviceId].ports) {
-        // Skip if this entity was already assigned in the second pass
-        if (portMatch && parseInt(portMatch[1]) === portObj.number) {
-          continue;
-        }
-
-        // Match by device_id if available
-        if (state.attributes?.device_id && portObj.port_device_id === state.attributes.device_id) {
-          if (entityName.includes('port_status') || entityName.includes('status')) {
-            portObj.status = entity;
-          } else if (entityName.includes('device_type')) {
-            portObj.device_type = entity;
-          } else if (entityName.includes('current_power') || (state.entity_id.startsWith('sensor.') && entityName.includes('power'))) {
-            portObj.power = entity;
-          } else if (state.entity_id.startsWith('switch.')) {
-            portObj.state = entity;
-          } else if (state.entity_id.startsWith('number.') && (entityName.includes('power') || entityName.includes('speed'))) {
-            portObj.power = entity;
-          } else if (entityName.includes('mode') || state.entity_id.startsWith('select.')) {
-            portObj.mode = entity;
+          // Device type sensor
+          else if (entityName.includes('device_type') || entityName.includes('connected_device')) {
+            if (!portObj.device_type) portObj.device_type = entity;
           }
-          break;
-        }
-        // Match by name prefix (for entities without device_id)
-        else if (portObj.namePrefix && friendlyNameLower.startsWith(portObj.namePrefix)) {
-          if (entityName.includes('port_status') || friendlyNameLower.includes('port status')) {
-            portObj.status = entity;
-          } else if (entityName.includes('device_type') || friendlyNameLower.includes('device type')) {
-            portObj.device_type = entity;
-          } else if (entityName.includes('current_power') || friendlyNameLower.includes('current power')) {
-            portObj.power = entity;
-          } else if (state.entity_id.startsWith('switch.') && friendlyNameLower.includes(portObj.namePrefix)) {
-            portObj.state = entity;
-          } else if (state.entity_id.startsWith('number.') && (entityName.includes('power') || entityName.includes('speed'))) {
-            portObj.power = entity;
-          } else if (entityName.includes('mode') || state.entity_id.startsWith('select.')) {
-            portObj.mode = entity;
+          // Current power sensor
+          else if (entityName.includes('current_power') || entityName.includes('at_power')) {
+            if (!portObj.power) portObj.power = entity;
           }
-          break;
+          // Switch entities
+          else if (entityType === 'switch') {
+            if (!portObj.state) portObj.state = entity;
+          }
+          // Number entities (power settings)
+          else if (entityType === 'number' && (entityName.includes('power') || entityName.includes('speed'))) {
+            if (!portObj.power) portObj.power = entity;
+          }
+          // Select entities (mode)
+          else if (entityType === 'select' || entityName.includes('mode')) {
+            if (!portObj.mode) portObj.mode = entity;
+          }
+          // Generic power sensor fallback
+          else if (entityType === 'sensor' && entityName.includes('power')) {
+            if (!portObj.power) portObj.power = entity;
+          }
         }
       }
     });
@@ -337,15 +272,38 @@ class ACInfinityCard extends LitElement {
     });
 
     this._entities = controllers;
-    console.log('Detected controllers:', this._entities);
-    console.log('Ports found:', Object.values(controllers).flatMap(c => c.ports.map(p => ({
-      number: p.number,
-      name: p.name,
-      status: p.status,
-      device_type: p.device_type,
-      power: p.power,
-      port_device_id: p.port_device_id
-    }))));
+    
+    // Enhanced logging for debugging
+    const controllerCount = Object.keys(controllers).length;
+    console.log(`%c[AC Infinity Card] Detected ${controllerCount} controller(s)`, 'color: #4CAF50; font-weight: bold');
+    
+    Object.values(controllers).forEach((controller, idx) => {
+      console.log(`Controller ${idx + 1}:`, {
+        name: controller.name,
+        device_id: controller.id,
+        sensors: {
+          probe_temp: controller.probe_temperature,
+          probe_humidity: controller.probe_humidity,
+          probe_vpd: controller.probe_vpd,
+          controller_temp: controller.controller_temperature,
+          controller_humidity: controller.controller_humidity,
+          controller_vpd: controller.controller_vpd,
+          moisture: controller.moisture,
+          co2: controller.co2,
+          uv: controller.uv
+        },
+        ports: controller.ports.map(p => ({
+          number: p.number,
+          name: p.name,
+          status: p.status,
+          power: p.power,
+          state: p.state,
+          device_type: p.device_type,
+          mode: p.mode
+        }))
+      });
+    });
+    
     this.requestUpdate();
   }
 
@@ -745,7 +703,7 @@ class ACInfinityCard extends LitElement {
           <!-- BOTTOM BAR: Brand -->
           <div class="bottom-bar">
             <span class="brand">AC INFINITY</span>
-            <span class="version">v1.1.1</span>
+            <span class="version">v1.1.2</span>
           </div>
         </div>
       </ha-card>
@@ -1546,7 +1504,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.1.1 ',
+  '%c AC-INFINITY-CARD %c Version 1.1.2 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
