@@ -2,7 +2,64 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.2.16] - 2024-12-15
+## [1.2.17] - 2024-12-15
+
+### Added - Multi-Controller Detection and Selection Guide 🎯
+
+**THE ISSUE IDENTIFIED:** Card is working correctly but showing the wrong controller!
+
+**What We Found:**
+Your debug output revealed:
+- ✅ Card correctly using AUTO-DETECT
+- ✅ 20 devices detected successfully
+- ✅ Controller built-in sensors working (Temp: 66°F, Humidity: 42%)
+- ❌ Showing "AC Infinity AI+ Controller" which has NO probe sensors
+- 💡 You have "Figs Tent Probe Tent" controller with probe sensors!
+
+**The Solution:**
+When you have multiple AC Infinity controllers, the card shows the **first one** by default. You need to tell it which controller to display.
+
+**New Feature - Multi-Controller Guidance:**
+- 🔍 **Detects multiple controllers** - Warns when you have more than one
+- 🔍 **Lists all controllers** - Shows name, ID, device type, and sensors available
+- 🔍 **Selection instructions** - Tells you exactly how to pick a different controller
+- 🔍 **Sensor summary** - Shows which controllers have probe sensors vs built-in only
+
+**Console Output:**
+```
+[AC Infinity Card] Multiple controllers detected!
+You have 20 controllers. Currently showing: "AC Infinity AI+ Controller"
+
+All available controllers:
+- id: "abc123...", name: "AC Infinity AI+ Controller"
+  has_probe_temp: false, has_controller_temp: true
+- id: "def456...", name: "Figs Tent Probe Tent"
+  has_probe_temp: true, has_controller_temp: true
+...
+
+To select a different controller, add to your card config:
+selected_controller: "DEVICE_ID_HERE"
+```
+
+**How to Use:**
+1. Update to v1.2.17
+2. Open browser console (F12)
+3. Look for "Multiple controllers detected!" message
+4. Copy the device_id of the controller you want
+5. Add to your card YAML:
+```yaml
+type: custom:ac-infinity-card
+title: My Grow Tent
+auto_detect: true
+selected_controller: "def456..."  # ← Paste device_id here
+```
+
+**What This Fixes:**
+- ❌ Card showing controller without probe sensors → ✅ Can select controller WITH probe sensors
+- ❌ No way to choose between multiple controllers → ✅ Easy selection via device_id
+- ❌ Guessing which controller is shown → ✅ Console tells you exactly which one
+
+## [2.16] - 2024-12-15
 
 ### Fixed - Enhanced Config Path Debugging 🔍
 
