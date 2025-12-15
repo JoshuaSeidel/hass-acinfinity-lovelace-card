@@ -1,6 +1,6 @@
 {
   "name": "ac-infinity-lovelace-card",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "A custom Lovelace card for Home Assistant that replicates the AC Infinity A+ Controller interface",
   "main": "ac-infinity-card.js",
   "scripts": {

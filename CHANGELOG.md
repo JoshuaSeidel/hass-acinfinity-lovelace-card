@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.4] - 2024-12-15
+
+### Fixed - Strict Entity Filtering 🎯
+Fixed false positive detection - card was detecting 590 entities when it should detect ~50.
+
+**The Problem:**
+- Too many non-AC Infinity entities detected (input_number helpers, generic binary_sensors)
+- Pattern matching was too broad
+- Card detected `input_number.orchard_moisture_before_watering` as AC Infinity entity
+- Many "unknown" device types cluttering the console
+
+**The Solution:**
+- **STRICT entity ID patterns** - Only match known AC Infinity prefixes:
+  - `sensor.figs_*` / `binary_sensor.figs_*` / `switch.figs_*`
+  - `sensor.fig_power_strip_*` / `binary_sensor.fig_power_strip_*`
+  - `sensor.orchard_*_soil_moisture` / `sensor.*orchard*_temperature`
+- **Entity registry first** - Still checks `hass.entities[entity].platform === 'ac_infinity'`
+- **No more false positives** - Only real AC Infinity integration entities
+
+**What This Fixes:**
+- ❌ 590 entities found → ✅ ~50 actual AC Infinity entities
+- ❌ 118 "devices" (mostly junk) → ✅ 2-3 real controllers
+- ❌ Ports showing blank → ✅ Ports populated correctly
+- ❌ Input helpers detected → ✅ Only real sensors
+
 ## [1.2.3] - 2024-12-15
 
 ### Fixed - Entity Registry Detection 🎯

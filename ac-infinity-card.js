@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.3';
+const VERSION = '1.2.4';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -97,27 +97,22 @@ class ACInfinityCard extends LitElement {
         return true;
       }
 
-      // Method 3: Check for entity_id patterns that indicate AC Infinity
-      // Format: domain.devicename_sensortype
-      const entityIdParts = entity.split('.');
-      if (entityIdParts.length >= 2) {
-        const entityName = entityIdParts[1];
-        // AC Infinity entities often have distinctive patterns
-        const acInfinityPatterns = [
-          /^[a-z_]*(?:controller|tent|probe|port|outlet).*(?:temperature|humidity|vpd|power|status|mode)/i,
-          /^fig.*(?:port|outlet|inline|power|strip)/i,
-          /orchard.*moisture/i
-        ];
-        
-        if (acInfinityPatterns.some(pattern => pattern.test(entityName))) {
-          return true;
-        }
-      }
-
-      // Method 4: Check friendly name for AC Infinity indicators
+      // Method 3: Check for STRICT AC Infinity entity_id patterns
+      // ONLY match entities that are CLEARLY from AC Infinity integration
+      const entityLower = entity.toLowerCase();
       const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
-      const acInfinityKeywords = ['fig power strip', 'figs port', 'figs inline', 'orchard moisture'];
-      if (acInfinityKeywords.some(keyword => friendlyName.includes(keyword))) {
+      
+      // Very specific AC Infinity patterns - must start with known prefixes
+      const strictAcInfinityPatterns = [
+        // Figs controller entities (your main controller)
+        /^(sensor|binary_sensor|switch|number|select)\.figs_/,
+        // Fig power strip entities
+        /^(sensor|binary_sensor|switch)\.fig_power_strip_/,
+        // Orchard sensor entities (but NOT input_number helpers!)
+        /^sensor\.(orchard|middle_orchard|fig_tree).*_(soil_moisture|temperature|humidity)/
+      ];
+      
+      if (strictAcInfinityPatterns.some(pattern => pattern.test(entityLower))) {
         return true;
       }
 
