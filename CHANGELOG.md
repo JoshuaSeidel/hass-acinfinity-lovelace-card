@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.14] - 2024-12-15
+
+### Added - Debug Logging for Card Population Diagnosis 🔍
+
+This is a **diagnostic release** to help identify why the card is not populating with device data despite detecting entities correctly.
+
+**Enhanced Debugging:**
+- 🔍 **Render logging** - Shows when `render()` is called and what data it has
+- 🔍 **Entity storage logging** - Displays `_entities` object contents and count
+- 🔍 **Controller selection logging** - Shows which controller is being selected for display
+- 🔍 **Display values logging** - Shows actual values being rendered (temp, humidity, etc.)
+- 🔍 **Port assignment logging** - Shows which ports have which entities assigned
+
+**Console Output Added:**
+- `[AC Infinity Card] RENDER CALLED` (red) - When render executes
+- `[AC Infinity Card] Display Values:` (purple) - All sensor values being displayed
+- Selected controller details - Which device is being shown
+- Port entity assignments - Status, state, power, and device type entities for each port
+
+**Purpose:**
+This release will help identify:
+- Is render() being called after entity detection?
+- Are detected entities being stored in `_entities`?
+- Is a controller being selected properly?
+- Are entity values being read correctly?
+- Where in the pipeline is the data being lost?
+
+**What This Fixes:**
+- Helps diagnose card showing blank/dashes despite detecting 480 AC Infinity entities
+- Provides detailed insight into render pipeline
+- Identifies where entity-to-display mapping breaks
+
+**Note:** This is a diagnostic release. Once we identify the issue from the console logs, a fix will be released.
+
 ## [1.2.13] - 2024-12-15
 
 ### Fixed - Device ID Detection from Entity Registry
