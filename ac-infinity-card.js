@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.0';
+const VERSION = '1.2.1';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -105,8 +105,9 @@ class ACInfinityCard extends LitElement {
         'probe_temperature', 'probe_humidity', 'probe_vpd',
         'controller_temperature', 'controller_humidity', 'controller_vpd',
         'built_in_temperature', 'built_in_humidity', 'built_in_vpd',
-        // Port-related entities
-        'port_number', 'port_status', '_port_',
+        // Port-related entities (includes outlets)
+        'port_number', 'port_status', '_port_', 'port ',
+        'outlet_', '_outlet', 'outlet ',
         'connected_device_type', 'device_type',
         'current_power', 'at_power', 'off_power', 'on_power',
         // AC Infinity specific sensors
@@ -140,13 +141,30 @@ class ACInfinityCard extends LitElement {
       if (!state) return;
       
       const friendlyName = state.attributes?.friendly_name || '';
-      const deviceId = state.attributes?.device_id || 'default';
       
-      let controllerName = this.config.title;
+      // Extract controller name from friendly name (e.g., "Grow Tent Temperature" -> "Grow Tent")
+      // Look for common patterns in AC Infinity entity names
+      let controllerName = this.config.title || 'AC Infinity';
       if (friendlyName) {
-        const parts = friendlyName.split(' ');
-        controllerName = parts.slice(0, Math.max(1, parts.length - 2)).join(' ');
+        // Remove common suffixes to get the device name
+        const suffixPatterns = [
+          / (Temperature|Humidity|VPD|Port \d+.*|Tent.*|Controller.*|Built-in.*|Current Power|Port Status|Device Type|Mode)$/i,
+          / (Probe|Sensor)$/i
+        ];
+        
+        let extractedName = friendlyName;
+        for (const pattern of suffixPatterns) {
+          extractedName = extractedName.replace(pattern, '').trim();
+        }
+        
+        if (extractedName && extractedName.length > 0) {
+          controllerName = extractedName;
+        }
       }
+      
+      // Use device_id if available, otherwise use the extracted controller name as the key
+      // This ensures entities from the same controller are grouped together
+      const deviceId = state.attributes?.device_id || `name_${controllerName.toLowerCase().replace(/\s+/g, '_')}`;
 
       if (!controllers[deviceId]) {
         controllers[deviceId] = {
@@ -213,8 +231,9 @@ class ACInfinityCard extends LitElement {
           && !entityName.includes('port')) {
         controllers[deviceId].uv = entity;
       }
-      // Check for port entities using simplified detection
-      const portMatch = entityName.match(/port[\s_]*(\d+)/i) || friendlyNameLower.match(/port[\s_]*(\d+)/i);
+      // Check for port/outlet entities using simplified detection
+      const portMatch = entityName.match(/(?:port|outlet)[\s_]*(\d+)/i) || 
+                       friendlyNameLower.match(/(?:port|outlet)[\s_]*(\d+)/i);
       
       if (portMatch) {
         const portNum = parseInt(portMatch[1]);
@@ -224,15 +243,10 @@ class ACInfinityCard extends LitElement {
           let portObj = controllers[deviceId].ports.find(p => p.number === portNum);
           
           if (!portObj) {
-            // Extract port name from friendly name (before "Port X" text)
-            let portNamePrefix = friendlyName.split(/port[\s_]*\d+/i)[0]?.trim();
-            if (!portNamePrefix || portNamePrefix === friendlyName) {
-              portNamePrefix = `Port ${portNum}`;
-            }
-
+            // Just use Port X as default name - device_type entity will override if available
             portObj = {
               number: portNum,
-              name: portNamePrefix,
+              name: `Port ${portNum}`,
               state: null,
               power: null,
               mode: null,
@@ -283,26 +297,48 @@ class ACInfinityCard extends LitElement {
       
       // Auto-detect device type based on available entities and naming patterns
       if (!controller.device_type) {
-        // Check if it's an outlet (has outlets instead of ports with devices)
-        const hasOutletPattern = controller.ports.some(p => {
+        const controllerNameLower = (controller.name || '').toLowerCase();
+        
+        // Check if it has environmental sensors (strong indicator of controller)
+        const hasEnvironmentalSensors = !!(
+          controller.probe_temperature || 
+          controller.controller_temperature ||
+          controller.probe_humidity ||
+          controller.controller_humidity ||
+          controller.moisture || 
+          controller.co2 ||
+          controller.probe_vpd ||
+          controller.controller_vpd
+        );
+        
+        // Check for outlet naming patterns
+        const hasOutletPattern = controllerNameLower.includes('outlet') || 
+                                controllerNameLower.includes('plug');
+        
+        // Check if ports have device types indicating they're outlets
+        const portsHaveOutletDevices = controller.ports.some(p => {
           const deviceTypeName = (this._hass.states[p.device_type]?.state || '').toLowerCase();
-          return deviceTypeName.includes('outlet') || 
-                 (controller.name && controller.name.toLowerCase().includes('outlet'));
+          return deviceTypeName.includes('outlet');
         });
         
-        // Check if it has environmental sensors (controller vs outlet)
-        const hasEnvironmentalSensors = controller.probe_temperature || 
-                                       controller.controller_temperature ||
-                                       controller.moisture || 
-                                       controller.co2;
-        
-        if (hasOutletPattern || controller.name.toLowerCase().includes('outlet')) {
+        // Decision logic
+        if (hasEnvironmentalSensors) {
+          controller.device_type = 'controller';
+        } else if (hasOutletPattern || portsHaveOutletDevices) {
           controller.device_type = 'outlet';
-        } else if (hasEnvironmentalSensors || controller.ports.length > 0) {
+        } else if (controller.ports.length > 0) {
+          // Has ports but no sensors - likely a controller without sensors connected
           controller.device_type = 'controller';
         } else {
           controller.device_type = 'unknown';
         }
+        
+        console.log(`[Device Type Detection] "${controller.name}":`, {
+          detected_type: controller.device_type,
+          has_environmental_sensors: hasEnvironmentalSensors,
+          has_outlet_pattern: hasOutletPattern,
+          ports_count: controller.ports.length
+        });
       }
     });
 
@@ -310,36 +346,54 @@ class ACInfinityCard extends LitElement {
     
     // Enhanced logging for debugging
     const controllerCount = Object.keys(controllers).length;
-    console.log(`%c[AC Infinity Card] Detected ${controllerCount} controller(s)`, 'color: #4CAF50; font-weight: bold');
+    console.log(`%c[AC Infinity Card] Detected ${controllerCount} device(s)`, 'color: #4CAF50; font-weight: bold');
+    
+    if (controllerCount === 0) {
+      console.warn('%c[AC Infinity Card] No devices detected! Check that AC Infinity integration entities exist.', 
+        'color: #FF9800; font-weight: bold');
+    }
     
     Object.values(controllers).forEach((controller, idx) => {
       const deviceTypeEmoji = controller.device_type === 'outlet' ? '🔌' : 
                              controller.device_type === 'controller' ? '🎛️' : '❓';
-      console.log(`${deviceTypeEmoji} Device ${idx + 1} [${controller.device_type}]:`, {
-        name: controller.name,
-        device_id: controller.id,
-        device_type: controller.device_type,
-        sensors: {
-          probe_temp: controller.probe_temperature,
-          probe_humidity: controller.probe_humidity,
-          probe_vpd: controller.probe_vpd,
-          controller_temp: controller.controller_temperature,
-          controller_humidity: controller.controller_humidity,
-          controller_vpd: controller.controller_vpd,
-          moisture: controller.moisture,
-          co2: controller.co2,
-          uv: controller.uv
-        },
-        ports: controller.ports.map(p => ({
-          number: p.number,
-          name: p.name,
-          status: p.status,
-          power: p.power,
-          state: p.state,
-          device_type: p.device_type,
-          mode: p.mode
-        }))
+      
+      console.groupCollapsed(`${deviceTypeEmoji} Device ${idx + 1}: "${controller.name}" [${controller.device_type}]`);
+      
+      console.log('Device ID:', controller.id);
+      console.log('Device Type:', controller.device_type);
+      
+      console.log('Environmental Sensors:', {
+        probe_temp: controller.probe_temperature || 'NOT FOUND',
+        probe_humidity: controller.probe_humidity || 'NOT FOUND',
+        probe_vpd: controller.probe_vpd || 'NOT FOUND',
+        controller_temp: controller.controller_temperature || 'NOT FOUND',
+        controller_humidity: controller.controller_humidity || 'NOT FOUND',
+        controller_vpd: controller.controller_vpd || 'NOT FOUND'
       });
+      
+      console.log('Specialty Sensors:', {
+        moisture: controller.moisture || 'NOT FOUND',
+        co2: controller.co2 || 'NOT FOUND',
+        uv: controller.uv || 'NOT FOUND'
+      });
+      
+      console.log(`Ports/Outlets (${controller.ports.length}):`, 
+        controller.ports.map(p => ({
+          [`Port ${p.number}`]: {
+            name: p.name,
+            status_entity: p.status || 'NOT FOUND',
+            status_value: p.status ? this._hass.states[p.status]?.state : 'N/A',
+            device_type_entity: p.device_type || 'NOT FOUND',
+            device_type_value: p.device_type ? this._hass.states[p.device_type]?.state : 'N/A',
+            power_entity: p.power || 'NOT FOUND',
+            power_value: p.power ? this._hass.states[p.power]?.state : 'N/A',
+            state_entity: p.state || 'NOT FOUND',
+            mode_entity: p.mode || 'NOT FOUND'
+          }
+        }))
+      );
+      
+      console.groupEnd();
     });
     
     this.requestUpdate();
