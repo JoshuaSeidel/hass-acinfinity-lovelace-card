@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.18';
+const VERSION = '1.2.19';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -723,6 +723,13 @@ class ACInfinityCard extends LitElement {
           uv: null,
           ports: []
         };
+      }
+      
+      // IMPORTANT: Allow manual device_type override even in auto-detect mode
+      if (this.config.device_type && controller) {
+        console.log(`%c[AC Infinity Card] Overriding device_type: ${controller.device_type} → ${this.config.device_type}`, 
+          'color: #FF9800; font-weight: bold');
+        controller.device_type = this.config.device_type;
       }
     }
     
