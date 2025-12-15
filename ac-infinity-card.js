@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.15';
+const VERSION = '1.2.16';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -25,6 +25,9 @@ class ACInfinityCard extends LitElement {
     if (!config) {
       throw new Error('Invalid configuration');
     }
+
+    console.log('%c[AC Infinity Card] setConfig() called', 'color: #2196F3; font-weight: bold');
+    console.log('Raw config received:', config);
 
     // Helper function to trim entity IDs and handle empty strings
     const cleanEntityId = (entityId) => {
@@ -175,6 +178,9 @@ class ACInfinityCard extends LitElement {
     }
     
     acInfinityEntities.forEach(entity => {
+      // CRITICAL: Trim entity ID in case there are any spaces
+      entity = entity.trim();
+      
       const state = this._hass.states[entity];
       if (!state) return;
       
@@ -656,6 +662,9 @@ class ACInfinityCard extends LitElement {
     let controller;
     if (this.config?.probe_temp_entity) {
       // Manual entity configuration
+      console.log('%c[AC Infinity Card] Using MANUAL configuration', 'color: #FF6B6B; font-weight: bold');
+      console.log('Full config:', this.config);
+      
       controller = {
         id: 'manual',
         name: this.config.title || 'AC Infinity Controller',
@@ -672,6 +681,7 @@ class ACInfinityCard extends LitElement {
         ports: []
       };
     } else {
+      console.log('%c[AC Infinity Card] Using AUTO-DETECT', 'color: #4CAF50; font-weight: bold');
       // Auto-detect: use selected controller or first available
       controller = this._getSelectedController();
       
