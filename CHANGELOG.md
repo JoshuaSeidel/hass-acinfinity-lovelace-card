@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2024-12-15
+
+### Fixed - Critical Multi-Device Fixes 🔧
+This release fixes critical issues with device detection and display from v1.2.0.
+
+**Device Grouping Fixes:**
+- ✅ **Fixed device_id fallback** - Entities without device_id now grouped by controller name instead of all going to 'default'
+- ✅ **Improved name extraction** - Better logic for extracting controller names from entity friendly names
+- ✅ **Multiple controller support** - Now correctly detects and separates multiple controllers
+- ✅ **Outlet pattern matching** - Added "outlet" to port detection patterns
+
+**Port/Outlet Display Fixes:**
+- ✅ **Fixed blank port names** - Ports now show "Port X" by default, device type entity overrides when available
+- ✅ **Status display working** - Port/outlet status now properly shows ON/OFF/power levels
+- ✅ **Device type labels** - Connected device names display correctly
+
+**Device Type Detection Improvements:**
+- ✅ **Enhanced outlet detection** - Better pattern matching for outlet devices
+- ✅ **Environmental sensor check** - More comprehensive check for controller vs outlet
+- ✅ **Name-based detection** - Uses controller name patterns as fallback
+- ✅ **Detection logging** - Console shows why each device was classified
+
+**Enhanced Debugging:**
+- 🔍 **Grouped console logs** - Collapsible device information in browser console
+- 🔍 **Entity value display** - Shows actual values alongside entity IDs
+- 🔍 **Missing entity warnings** - Clear indication when entities aren't found
+- 🔍 **Device count alerts** - Warning if no devices detected
+
+**What This Fixes:**
+- ❌ All devices showing same info → ✅ Each device shows its own data
+- ❌ Blank port/outlet display → ✅ Shows names, status, and power levels
+- ❌ Only detecting 1 controller → ✅ Detects all controllers separately
+- ❌ Controller/outlet look the same → ✅ Proper device type detection
+
 ## [1.2.0] - 2024-12-15
 
 ### Added - Multi-Device Support 🎛️🔌
