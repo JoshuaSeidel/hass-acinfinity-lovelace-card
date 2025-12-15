@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.10] - 2024-12-15
+
+### Fixed - CRITICAL: Use Entity Registry device_id (Fixes v1.2.8/v1.2.9 Issues)
+
+**This ACTUALLY fixes the device grouping!** Previous releases had the wrong code on the main branch.
+
+**The Problem:**
+Card was using `state.attributes?.device_id` which doesn't exist:
+```javascript
+// ❌ WRONG - device_id is NOT in state attributes
+const deviceId = state.attributes?.device_id || 'no_device_id';
+// Result: EVERYTHING grouped as 'no_device_id'
+```
+
+**The Solution:**
+Now correctly uses entity registry (where integration v1.2.5 stores it):
+```javascript
+// ✅ CORRECT - device_id is in the entity registry
+const entityEntry = this._hass.entities?.[entity];
+const deviceId = entityEntry?.device_id || 'no_device_id';
+```
+
+**Fixed in 2 locations:**
+- Line ~130: Debug logging (Entity Structure Analysis)
+- Line ~182: Main controller grouping logic
+
+**This fixes:**
+- ✅ Entities grouped by actual physical device (not `no_device_id`)
+- ✅ Console shows real device IDs like `b3d9e1fe43c2a34734b8057dc2cc712d`
+- ✅ Controller card shows only controller entities  
+- ✅ Outlet card shows only outlet entities
+- ✅ Multiple controllers properly separated
+- ✅ Port/outlet status correctly displayed
+
+**Requires:**
+- AC Infinity Integration v1.2.5+ (MUST restart HA after updating!)
+
 ## [1.2.5] - 2024-12-15
 
 ### Fixed - SIMPLIFIED: Entity Registry Only! 🎯

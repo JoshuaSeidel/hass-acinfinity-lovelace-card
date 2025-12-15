@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.8';
+const VERSION = '1.2.10';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -127,7 +127,9 @@ class ACInfinityCard extends LitElement {
       const byDevice = {};
       acInfinityEntities.forEach(entity => {
         const state = this._hass.states[entity];
-        const deviceId = state?.attributes?.device_id || 'no_device_id';
+        const entityEntry = this._hass.entities?.[entity];
+        // CRITICAL: Use entity REGISTRY's device_id (integration v1.2.5 populates this)
+        const deviceId = entityEntry?.device_id || 'no_device_id';
         if (!byDevice[deviceId]) {
           byDevice[deviceId] = [];
         }
@@ -175,9 +177,10 @@ class ACInfinityCard extends LitElement {
         }
       }
       
-      // Use device_id if available, otherwise use the extracted controller name as the key
+      // CRITICAL: Use entity REGISTRY's device_id (integration v1.2.5 populates this)
       // This ensures entities from the same controller are grouped together
-      const deviceId = state.attributes?.device_id || `name_${controllerName.toLowerCase().replace(/\s+/g, '_')}`;
+      const entityEntry = this._hass.entities?.[entity];
+      const deviceId = entityEntry?.device_id || `name_${controllerName.toLowerCase().replace(/\s+/g, '_')}`;
 
       if (!controllers[deviceId]) {
         controllers[deviceId] = {
