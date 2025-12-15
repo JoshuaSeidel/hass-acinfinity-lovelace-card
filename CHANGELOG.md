@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.11] - 2024-12-15
+
+### Fixed - Controller Grouping (Line 180 Fix)
+
+**THE FIX THAT ACTUALLY WORKS!** Previous v1.2.10 still had buggy code on line 180.
+
+**The Problem (Line 180):**
+```javascript
+// ❌ WRONG - Still using state.attributes
+const deviceId = state.attributes?.device_id || `name_${controllerName...}`;
+// Result: 20 "devices" (one per port) instead of 2 real controllers
+```
+
+**The Solution (Line 180):**
+```javascript
+// ✅ CORRECT - Use entity REGISTRY
+const entityEntry = this._hass.entities?.[entity];
+const deviceId = entityEntry?.device_id || `name_${controllerName...}`;
+// Result: 2 real controllers with all their ports grouped correctly
+```
+
+**Console Output Before:**
+```
+Detected 20 device(s)
+Device 4: "Figs" [controller] (1 port)
+Device 5: "Figs" [controller] (1 port)
+Device 10: "Fig Power Strip" [controller] (1 port)
+```
+
+**Console Output After:**
+```
+Detected 2 device(s)
+Device: b3d9e1fe43c2a34734b8057dc2cc712d (4 entities)  ← Controller
+Device: cb3aacf683a100f5c92a1787bf100eb4 (248 entities) ← Outlet Strip
+```
+
+**This fixes:**
+- ✅ Port/outlet status now shows connected device names
+- ✅ Port power levels display correctly
+- ✅ All 8 ports grouped under ONE controller (not 8 separate controllers)
+- ✅ Built-in temp/humidity still work
+- ✅ Proper multi-controller support
+
 ## [1.2.5] - 2024-12-15
 
 ### Fixed - SIMPLIFIED: Entity Registry Only! 🎯
