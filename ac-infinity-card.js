@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.22';
+const VERSION = '1.2.23';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -366,8 +366,20 @@ class ACInfinityCard extends LitElement {
         }
       }
       // Check for port/outlet entities using simplified detection
-      const portMatch = entityName.match(/(?:port|outlet)[\s_]*(\d+)/i) || 
-                       friendlyNameLower.match(/(?:port|outlet)[\s_]*(\d+)/i);
+      // Try to match "port_3", "outlet_3", "port 3", etc.
+      let portMatch = entityName.match(/(?:port|outlet)[\s_]*(\d+)/i) || 
+                      friendlyNameLower.match(/(?:port|outlet)[\s_]*(\d+)/i);
+      
+      // Fallback: If no port/outlet prefix, check for _\d+ suffix (e.g., "current_power_3", "status_3")
+      // This handles entities like "sensor.device_current_power_3" where the port number is at the end
+      if (!portMatch && (entityName.includes('current_power') || entityName.includes('status') || 
+                         entityName.includes('state') || entityName.includes('mode') || 
+                         entityName.includes('device_type') || entityName.includes('connected_device'))) {
+        const suffixMatch = entityName.match(/_(\d+)$/);
+        if (suffixMatch) {
+          portMatch = suffixMatch; // Use the suffix number as port number
+        }
+      }
       
       if (portMatch) {
         const portNum = parseInt(portMatch[1]);
@@ -819,7 +831,8 @@ class ACInfinityCard extends LitElement {
       hasDeviceType: !!p.device_type,
       status_entity: p.status || 'none',
       state_entity: p.state || 'none',
-      power_entity: p.power || 'none'
+      power_entity: p.power || 'none',
+      device_type_entity: p.device_type || 'none'
     })));
 
     return html`
