@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.5';
+const VERSION = '1.2.8-debug';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -292,33 +292,61 @@ class ACInfinityCard extends LitElement {
           // Assign entity to appropriate port property based on entity type and name
           const entityType = entity.split('.')[0]; // sensor, switch, number, select, etc.
           
-          // Port status sensor (Active/Inactive)
-          if (entityName.includes('port_status') || (entityName.includes('status') && !entityName.includes('port_number'))) {
-            if (!portObj.status) portObj.status = entity;
+          console.log(`[Port ${portNum}] Processing entity: ${entity}`, {
+            entityType,
+            entityName,
+            friendlyName: friendlyName
+          });
+          
+          // Port status sensor (Active/Inactive) - Check for binary_sensor with _status
+          if ((entityType === 'binary_sensor' && entityName.includes('status')) || 
+              (entityName.includes('port_status') && entityType === 'sensor')) {
+            if (!portObj.status) {
+              portObj.status = entity;
+              console.log(`  ✓ Assigned as STATUS`);
+            }
           }
-          // Device type sensor
-          else if (entityName.includes('device_type') || entityName.includes('connected_device')) {
-            if (!portObj.device_type) portObj.device_type = entity;
+          // Device type sensor (what's connected to the port)
+          if (entityName.includes('device_type') || entityName.includes('connected_device')) {
+            if (!portObj.device_type) {
+              portObj.device_type = entity;
+              console.log(`  ✓ Assigned as DEVICE_TYPE`);
+            }
           }
           // Current power sensor
-          else if (entityName.includes('current_power') || entityName.includes('at_power')) {
-            if (!portObj.power) portObj.power = entity;
+          if (entityName.includes('current_power') || entityName.includes('at_power')) {
+            if (!portObj.power) {
+              portObj.power = entity;
+              console.log(`  ✓ Assigned as POWER`);
+            }
           }
-          // Switch entities
-          else if (entityType === 'switch') {
-            if (!portObj.state) portObj.state = entity;
+          // Switch entities (port on/off control)
+          if (entityType === 'switch' && !entityName.includes('status')) {
+            if (!portObj.state) {
+              portObj.state = entity;
+              console.log(`  ✓ Assigned as STATE (switch)`);
+            }
+          }
+          // Binary sensor _state entities (port state indicator)
+          if (entityType === 'binary_sensor' && entityName.includes('_state') && !entityName.includes('status')) {
+            if (!portObj.state) {
+              portObj.state = entity;
+              console.log(`  ✓ Assigned as STATE (binary_sensor)`);
+            }
           }
           // Number entities (power settings)
-          else if (entityType === 'number' && (entityName.includes('power') || entityName.includes('speed'))) {
-            if (!portObj.power) portObj.power = entity;
+          if (entityType === 'number' && (entityName.includes('power') || entityName.includes('speed'))) {
+            if (!portObj.power) {
+              portObj.power = entity;
+              console.log(`  ✓ Assigned as POWER (number)`);
+            }
           }
           // Select entities (mode)
-          else if (entityType === 'select' || entityName.includes('mode')) {
-            if (!portObj.mode) portObj.mode = entity;
-          }
-          // Generic power sensor fallback
-          else if (entityType === 'sensor' && entityName.includes('power')) {
-            if (!portObj.power) portObj.power = entity;
+          if (entityType === 'select' || entityName.includes('mode')) {
+            if (!portObj.mode) {
+              portObj.mode = entity;
+              console.log(`  ✓ Assigned as MODE`);
+            }
           }
         }
       }
