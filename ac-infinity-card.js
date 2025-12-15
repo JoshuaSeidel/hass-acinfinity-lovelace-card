@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.16';
+const VERSION = '1.2.17';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -686,6 +686,25 @@ class ACInfinityCard extends LitElement {
       controller = this._getSelectedController();
       
       console.log('Selected controller:', controller);
+      
+      // Show all available controllers
+      const allControllers = Object.values(this._entities || {});
+      if (allControllers.length > 1) {
+        console.log('%c[AC Infinity Card] Multiple controllers detected!', 'color: #FF9800; font-weight: bold');
+        console.log(`You have ${allControllers.length} controllers. Currently showing: "${controller?.name}"`);
+        console.log('All available controllers:', allControllers.map(c => ({
+          id: c.id,
+          name: c.name,
+          device_type: c.device_type,
+          has_probe_temp: !!c.probe_temperature,
+          has_probe_humidity: !!c.probe_humidity,
+          has_controller_temp: !!c.controller_temperature,
+          ports_count: c.ports?.length || 0
+        })));
+        console.log('%cTo select a different controller, add to your card config:', 'color: #2196F3; font-weight: bold');
+        console.log('selected_controller: "DEVICE_ID_HERE"');
+        console.log('(Copy a device ID from the list above)');
+      }
       
       if (!controller) {
         console.warn('%c[AC Infinity Card] No controller selected - using fallback', 'color: #FF9800; font-weight: bold');
