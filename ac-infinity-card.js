@@ -4,6 +4,9 @@ import {
   css
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
+// VERSION constant for cache busting and version tracking
+const VERSION = '1.1.3';
+
 class ACInfinityCard extends LitElement {
   static get properties() {
     return {
@@ -11,6 +14,11 @@ class ACInfinityCard extends LitElement {
       config: { type: Object },
       _entities: { type: Object }
     };
+  }
+
+  // Add version getter for cache busting
+  static getVersion() {
+    return VERSION;
   }
 
   setConfig(config) {
@@ -703,7 +711,7 @@ class ACInfinityCard extends LitElement {
           <!-- BOTTOM BAR: Brand -->
           <div class="bottom-bar">
             <span class="brand">AC INFINITY</span>
-            <span class="version">v1.1.2</span>
+            <span class="version">v${VERSION}</span>
           </div>
         </div>
       </ha-card>
@@ -1499,12 +1507,27 @@ window.customCards.push({
   type: 'ac-infinity-card',
   name: 'AC Infinity Controller Card',
   description: 'Display AC Infinity controller interface matching hardware display',
+  version: VERSION,
   preview: true,
   documentationURL: 'https://github.com/JoshuaSeidel/hass-acinfinity-lovelace-card'
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.1.2 ',
+  `%c AC-INFINITY-CARD %c Version ${VERSION} `,
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
+
+// Force version log on every load to help detect cache issues
+console.log(`%c[AC Infinity Card] Loaded version ${VERSION} at ${new Date().toISOString()}`, 
+  'color: #4CAF50; font-weight: bold');
+
+// Warn if there's a mismatch in registered cards (cache issue indicator)
+if (window.customCards) {
+  const existingCards = window.customCards.filter(card => card.type === 'ac-infinity-card');
+  if (existingCards.length > 1) {
+    console.warn('%c[AC Infinity Card] Multiple versions detected! Please clear browser cache (Ctrl+Shift+R or Cmd+Shift+R)', 
+      'color: #FF9800; font-weight: bold');
+    console.warn('Detected versions:', existingCards.map(c => c.version || 'unknown'));
+  }
+}

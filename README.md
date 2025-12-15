@@ -69,10 +69,12 @@ This card requires the [AC Infinity Home Assistant Integration](https://github.c
 2. Copy both files to your `config/www` folder
 3. Add the following to your Lovelace resources (Settings → Dashboards → Resources):
    ```yaml
-   url: /local/ac-infinity-card.js
+   url: /local/ac-infinity-card.js?v=1.1.3
    type: module
    ```
+   **Note:** The `?v=1.1.3` parameter helps prevent browser caching. Update this version number when updating the card.
 4. Restart Home Assistant
+5. **Clear your browser cache** (Ctrl+F5 / Cmd+Shift+R) to ensure the latest version loads
 
 ## Usage
 
@@ -206,12 +208,33 @@ cards:
 
 ## Troubleshooting
 
-### Card Not Showing
+### Card Not Showing or Old Version Displayed
 
-1. Verify the AC Infinity integration is installed and working
-2. Check that you have AC Infinity entities in Developer Tools → States
-3. Clear your browser cache (Ctrl+F5 or Cmd+Shift+R)
-4. Check the browser console for errors (F12)
+**Browser caching is the most common issue!** Try these steps in order:
+
+1. **Hard refresh your browser:**
+   - Chrome/Edge/Firefox: Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (Mac)
+   - Safari: Cmd+Option+R
+   - Or press F12 → Right-click reload button → "Empty Cache and Hard Reload"
+
+2. **Check the version in browser console:**
+   - Press F12 to open Developer Tools
+   - Look for green `[AC Infinity Card] Loaded version X.X.X` message
+   - If the version doesn't match what you installed, cache is the issue
+
+3. **For manual installations, update the resource URL:**
+   - Go to Settings → Dashboards → Resources
+   - Edit the ac-infinity-card.js entry
+   - Add or update version parameter: `/local/ac-infinity-card.js?v=1.1.3`
+   - Save and hard refresh browser
+
+4. **Verify the integration:**
+   - Check that AC Infinity integration is installed and working
+   - Verify you have AC Infinity entities in Developer Tools → States
+
+5. **Check for JavaScript errors:**
+   - Open browser console (F12)
+   - Look for any red error messages
 
 ### Entities Not Detected
 

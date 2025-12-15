@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.3] - 2024-12-15
+
+### Fixed - Browser Cache Issues 🔄
+This release adds multiple cache-busting mechanisms to ensure users always get the latest version.
+
+**Cache Prevention Features:**
+- ✅ **VERSION constant** - Single source of truth for version number throughout the code
+- ✅ **Version in card registration** - Helps Home Assistant track card versions
+- ✅ **Load timestamp logging** - Console shows exact time and version loaded
+- ✅ **Duplicate version detection** - Warns users if multiple versions are cached
+- ✅ **Dynamic version display** - Card footer shows actual loaded version from constant
+
+**Documentation Improvements:**
+- 📚 **Enhanced troubleshooting guide** - Step-by-step cache clearing instructions
+- 📚 **Version parameter in examples** - Shows how to add `?v=X.X.X` to resource URLs
+- 📚 **Browser-specific instructions** - Clear cache steps for Chrome, Firefox, Safari, Edge
+- 📚 **Console debugging tips** - How to verify which version is actually loaded
+
+**What This Fixes:**
+- ❌ Old version displaying after update → ✅ Better detection and user warnings
+- ❌ Version number not updating → ✅ Single VERSION constant used everywhere
+- ❌ No way to verify loaded version → ✅ Console logs with timestamps
+- ❌ Silent cache issues → ✅ Warnings when multiple versions detected
+
+**User Actions Required:**
+After updating, users should:
+1. Hard refresh browser (Ctrl+Shift+R / Cmd+Shift+R)
+2. Check browser console for version confirmation
+3. For manual installs: Update resource URL to include `?v=1.1.3`
+
 ## [1.1.2] - 2024-12-15
 
 ### Fixed - Major Detection Improvements 🔧
