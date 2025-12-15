@@ -42,10 +42,12 @@ This card requires the [AC Infinity Home Assistant Integration](https://github.c
 - `sensor.your_controller_port_1_state`
 - etc.
 
+⚠️ **Integration Version Requirement**: This card requires **AC Infinity Integration v1.3.0 or newer**. Earlier versions created separate devices for each port and sensor, which prevented the card from displaying all information together. v1.3.0+ properly groups all entities under the controller device.
+
 ## Requirements
 
 - Home Assistant 2023.1 or newer
-- [AC Infinity Integration](https://github.com/JoshuaSeidel/homeassistant-acinfinity) installed and configured
+- [AC Infinity Integration](https://github.com/JoshuaSeidel/homeassistant-acinfinity) **v1.3.0 or newer** installed and configured
 - AC Infinity A+ Controller with entities created in Home Assistant
 
 ## Installation
