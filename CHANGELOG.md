@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.16] - 2024-12-15
+
+### Fixed - Enhanced Config Path Debugging 🔍
+
+**Additional diagnostic logging** to identify where manual vs auto-detect configuration is coming from.
+
+**New Debug Output:**
+- 🔍 **Config logging** - Shows raw config received in `setConfig()`
+- 🔍 **Path indicator** - Shows whether using "MANUAL configuration" (red) or "AUTO-DETECT" (green)
+- 🔍 **Full config dump** - Displays entire config object when manual path is taken
+- 🔍 **Entity trimming** - Also trims entity IDs during auto-detection as safety measure
+
+**Why This Release:**
+User reported having `auto_detect: true` but card was showing manual entity configuration with trailing spaces. This release will help identify:
+- What's actually in the card's config object?
+- Is the card really using auto-detect or manual config?
+- Where are the entity IDs with spaces coming from?
+
+**Console Output:**
+```
+[AC Infinity Card] setConfig() called
+Raw config received: { ... }
+
+[AC Infinity Card] Using MANUAL configuration  (or)
+[AC Infinity Card] Using AUTO-DETECT
+```
+
+**Note:** This is still a diagnostic release. After seeing the new console output, we'll know exactly what's wrong.
+
 ## [1.2.15] - 2024-12-15
 
 ### Fixed - Trim Whitespace from Manual Entity Configuration 🔧
