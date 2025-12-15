@@ -2,6 +2,62 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2024-12-15
+
+### Added - Multi-Device Support 🎛️🔌
+This release adds support for different types of AC Infinity devices with adaptive displays.
+
+**Device Type Detection:**
+- ✅ **Auto-detect device type** - Automatically identifies controllers vs outlets
+- ✅ **Controller support** - AI+ Controller with 8 ports and environmental sensors
+- ✅ **Outlet support** - AI+ Outlet with 8 smart outlets (no environmental sensors)
+- ✅ **Adaptive UI** - Display changes based on device capabilities
+
+**Outlet-Specific Features:**
+- 🔌 **Outlet icon** - Shows plug icon instead of port icon
+- 🔌 **Outlet labels** - Uses "OUTLETS" instead of "PORTS" throughout UI
+- 🔌 **Simplified display** - No temperature/humidity display for outlet-only devices
+- 🔌 **Status indicators** - Shows ON/OFF status for each outlet
+
+**Controller Features:**
+- 🎛️ **Full sensor display** - Temperature, humidity, VPD readings as before
+- 🎛️ **Port device types** - Shows what's connected to each port
+- 🎛️ **Environmental controls** - Mode, scheduling, and automation displays
+- 🎛️ **Specialty sensors** - Moisture, CO2, UV sensor support
+
+**Configuration Options:**
+- ⚙️ **Device type selector** - Manual override in visual editor
+- ⚙️ **Auto-detect by default** - Smart detection based on available entities
+- ⚙️ **Per-device settings** - Each card can display different device types
+
+**Enhanced Logging:**
+- 🔍 **Device type indicators** - Console shows 🔌 for outlets, 🎛️ for controllers
+- 🔍 **Detection details** - See why device was classified as outlet vs controller
+
+**What This Enables:**
+- ✅ Support for AC Infinity AI+ Outlet (8 smart plugs)
+- ✅ Support for AC Infinity AI+ Controller (with environmental sensors)
+- ✅ Multiple device types on same dashboard
+- ✅ Automatic adaptation to device capabilities
+
+**Example Configurations:**
+
+For an AI+ Controller:
+```yaml
+type: custom:ac-infinity-card
+title: Grow Tent Controller
+auto_detect: true
+device_type: controller  # optional, auto-detected
+```
+
+For an AI+ Outlet:
+```yaml
+type: custom:ac-infinity-card
+title: Smart Outlets
+auto_detect: true
+device_type: outlet  # optional, auto-detected
+```
+
 ## [1.1.3] - 2024-12-15
 
 ### Fixed - Browser Cache Issues 🔄

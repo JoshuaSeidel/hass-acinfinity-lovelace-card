@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.1.3';
+const VERSION = '1.2.0';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -31,6 +31,7 @@ class ACInfinityCard extends LitElement {
       show_ports: config.show_ports !== false,
       auto_detect: config.auto_detect !== false,
       selected_controller: config.selected_controller || null, // Controller device_id to display
+      device_type: config.device_type || null, // 'controller', 'outlet', or null for auto-detect
       probe_temp_entity: config.probe_temp_entity || null,
       probe_humidity_entity: config.probe_humidity_entity || null,
       probe_vpd_entity: config.probe_vpd_entity || null,
@@ -151,6 +152,7 @@ class ACInfinityCard extends LitElement {
         controllers[deviceId] = {
           id: deviceId,
           name: controllerName,
+          device_type: null, // Will be detected: 'controller', 'outlet', or 'unknown'
           probe_temperature: null,
           probe_humidity: null,
           probe_vpd: null,
@@ -275,8 +277,33 @@ class ACInfinityCard extends LitElement {
       }
     });
 
+    // Detect device type and sort ports for each controller
     Object.values(controllers).forEach(controller => {
       controller.ports.sort((a, b) => a.number - b.number);
+      
+      // Auto-detect device type based on available entities and naming patterns
+      if (!controller.device_type) {
+        // Check if it's an outlet (has outlets instead of ports with devices)
+        const hasOutletPattern = controller.ports.some(p => {
+          const deviceTypeName = (this._hass.states[p.device_type]?.state || '').toLowerCase();
+          return deviceTypeName.includes('outlet') || 
+                 (controller.name && controller.name.toLowerCase().includes('outlet'));
+        });
+        
+        // Check if it has environmental sensors (controller vs outlet)
+        const hasEnvironmentalSensors = controller.probe_temperature || 
+                                       controller.controller_temperature ||
+                                       controller.moisture || 
+                                       controller.co2;
+        
+        if (hasOutletPattern || controller.name.toLowerCase().includes('outlet')) {
+          controller.device_type = 'outlet';
+        } else if (hasEnvironmentalSensors || controller.ports.length > 0) {
+          controller.device_type = 'controller';
+        } else {
+          controller.device_type = 'unknown';
+        }
+      }
     });
 
     this._entities = controllers;
@@ -286,9 +313,12 @@ class ACInfinityCard extends LitElement {
     console.log(`%c[AC Infinity Card] Detected ${controllerCount} controller(s)`, 'color: #4CAF50; font-weight: bold');
     
     Object.values(controllers).forEach((controller, idx) => {
-      console.log(`Controller ${idx + 1}:`, {
+      const deviceTypeEmoji = controller.device_type === 'outlet' ? '🔌' : 
+                             controller.device_type === 'controller' ? '🎛️' : '❓';
+      console.log(`${deviceTypeEmoji} Device ${idx + 1} [${controller.device_type}]:`, {
         name: controller.name,
         device_id: controller.id,
+        device_type: controller.device_type,
         sensors: {
           probe_temp: controller.probe_temperature,
           probe_humidity: controller.probe_humidity,
@@ -433,6 +463,7 @@ class ACInfinityCard extends LitElement {
       controller = {
         id: 'manual',
         name: this.config.title || 'AC Infinity Controller',
+        device_type: this.config.device_type || 'controller',
         probe_temperature: this.config.probe_temp_entity,
         probe_humidity: this.config.probe_humidity_entity,
         probe_vpd: this.config.probe_vpd_entity,
@@ -449,6 +480,7 @@ class ACInfinityCard extends LitElement {
       controller = this._getSelectedController() || {
         id: null,
         name: 'AC Infinity Controller',
+        device_type: 'controller',
         probe_temperature: null,
         probe_humidity: null,
         probe_vpd: null,
@@ -461,6 +493,11 @@ class ACInfinityCard extends LitElement {
         ports: []
       };
     }
+    
+    // Determine display configuration based on device type
+    const isOutlet = controller.device_type === 'outlet';
+    const portLabel = isOutlet ? 'OUTLETS' : 'PORTS';
+    const portButtonLabel = isOutlet ? 'OUTLET BUTTON' : 'PORT BUTTON';
 
     const probeTemp = this._formatValue(this._getEntityState(controller.probe_temperature));
     const probeHumidity = this._formatValue(this._getEntityState(controller.probe_humidity));
@@ -477,12 +514,20 @@ class ACInfinityCard extends LitElement {
     // Check if we have specialty sensors to display
     const hasSpecialtySensors = controller.moisture || controller.co2 || controller.uv;
     
+    // Check if this device has environmental sensors (outlets typically don't)
+    const hasEnvironmentalSensors = controller.probe_temperature || 
+                                   controller.controller_temperature || 
+                                   controller.probe_humidity ||
+                                   controller.controller_humidity;
+    
+    // Build ports/outlets array (always show 8 items)
     const ports = [];
+    const defaultName = isOutlet ? 'Outlet' : 'Port';
     for (let i = 1; i <= 8; i++) {
       const existingPort = (controller.ports || []).find(p => p.number === i);
       ports.push(existingPort || {
         number: i,
-        name: `Port ${i}`,
+        name: `${defaultName} ${i}`,
         state: null,
         power: null,
         mode: null
@@ -514,12 +559,12 @@ class ACInfinityCard extends LitElement {
           <div class="main-display">
             <!-- BUTTONS COLUMN -->
             <div class="buttons-column">
-              <!-- Port Button (top circle button) -->
+              <!-- Port/Outlet Button (top circle button) -->
               <div class="port-button-container">
                 <button class="port-button" @click="${() => this._showPortsDialog()}">
-                  <span class="button-icon">○─</span>
+                  <span class="button-icon">${isOutlet ? '🔌' : '○─'}</span>
                 </button>
-                <span class="button-label">PORT BUTTON</span>
+                <span class="button-label">${portButtonLabel}</span>
               </div>
               
               <!-- Mode Button -->
@@ -543,10 +588,10 @@ class ACInfinityCard extends LitElement {
               </div>
             </div>
             
-            <!-- PORTS COLUMN -->
+            <!-- PORTS/OUTLETS COLUMN -->
             <div class="ports-column">
               <div class="ports-section">
-                <span class="section-label">PORTS</span>
+                <span class="section-label">${portLabel}</span>
                 <div class="ports-list">
                   ${ports.map(port => {
                     // Use v1.2.0 status sensor if available
@@ -594,30 +639,43 @@ class ACInfinityCard extends LitElement {
               </div>
             </div>
             
-            <!-- CENTER COLUMN: Main Temperature Display -->
+            <!-- CENTER COLUMN: Main Display -->
             <div class="center-section">
-              <div class="temp-readings-horizontal">
-                <div class="main-temp-display" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
-                  <span class="temp-value">${probeTemp}</span>
-                  <span class="temp-unit">°<br>F</span>
+              ${hasEnvironmentalSensors ? html`
+                <!-- Temperature Display for Controllers -->
+                <div class="temp-readings-horizontal">
+                  <div class="main-temp-display" @click="${() => this._handleEntityClick(controller.probe_temperature)}">
+                    <span class="temp-value">${probeTemp}</span>
+                    <span class="temp-unit">°<br>F</span>
+                  </div>
+                  
+                  <div class="secondary-readings-vertical">
+                    <div class="reading-item" @click="${() => this._handleEntityClick(controller.probe_humidity)}">
+                      <span class="reading-value">${probeHumidity}</span>
+                      <span class="reading-unit">%</span>
+                    </div>
+                    <div class="reading-item" @click="${() => this._handleEntityClick(controller.probe_vpd)}">
+                      <span class="reading-value">${probeVpd}</span>
+                      <span class="reading-unit">kPa</span>
+                    </div>
+                  </div>
                 </div>
                 
-                <div class="secondary-readings-vertical">
-                  <div class="reading-item" @click="${() => this._handleEntityClick(controller.probe_humidity)}">
-                    <span class="reading-value">${probeHumidity}</span>
-                    <span class="reading-unit">%</span>
-                  </div>
-                  <div class="reading-item" @click="${() => this._handleEntityClick(controller.probe_vpd)}">
-                    <span class="reading-value">${probeVpd}</span>
-                    <span class="reading-unit">kPa</span>
+                <div class="mode-status">
+                  <span class="mode-label">AUTO</span>
+                  <span class="mode-detail">• HIGH TEMP</span>
+                </div>
+              ` : html`
+                <!-- Outlet Status Display -->
+                <div class="outlet-status-display">
+                  <div class="device-icon">${isOutlet ? '🔌' : '🎛️'}</div>
+                  <div class="device-name">${controller.name}</div>
+                  <div class="device-type-label">${isOutlet ? 'AC INFINITY OUTLET' : 'AC INFINITY CONTROLLER'}</div>
+                  <div class="mode-status">
+                    <span class="mode-label">READY</span>
                   </div>
                 </div>
-              </div>
-              
-              <div class="mode-status">
-                <span class="mode-label">AUTO</span>
-                <span class="mode-detail">• HIGH TEMP</span>
-              </div>
+              `}
             </div>
             
             <!-- RIGHT VALUES COLUMN -->
@@ -1057,6 +1115,37 @@ class ACInfinityCard extends LitElement {
       
       .mode-detail {
         color: #999;
+      }
+      
+      /* OUTLET STATUS DISPLAY */
+      .outlet-status-display {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 40px;
+      }
+      
+      .device-icon {
+        font-size: 120px;
+        line-height: 1;
+        opacity: 0.8;
+      }
+      
+      .device-name {
+        font-size: 32px;
+        font-weight: 300;
+        text-align: center;
+        color: #fff;
+      }
+      
+      .device-type-label {
+        font-size: 12px;
+        letter-spacing: 2px;
+        color: #6db3d4;
+        text-transform: uppercase;
+        text-align: center;
       }
       
       /* RIGHT VALUES COLUMN */

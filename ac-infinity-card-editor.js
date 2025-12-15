@@ -113,6 +113,16 @@ class ACInfinityCardEditor extends LitElement {
               @input="${(e) => this._valueChanged('title', e.target.value)}"
             />
           </div>
+
+          <div class="option">
+            <label>Device Type</label>
+            <div class="description">Type of AC Infinity device (auto-detected by default)</div>
+            <select @change="${(e) => this._valueChanged('device_type', e.target.value || null)}">
+              <option value="">-- Auto Detect --</option>
+              <option value="controller" ?selected="${this.config.device_type === 'controller'}">Controller (with environmental sensors)</option>
+              <option value="outlet" ?selected="${this.config.device_type === 'outlet'}">Outlet (smart plugs only)</option>
+            </select>
+          </div>
         </div>
 
         <!-- Controller Selection (shown when multiple controllers detected) -->
