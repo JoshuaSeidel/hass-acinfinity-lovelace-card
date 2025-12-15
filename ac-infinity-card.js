@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.8-debug';
+const VERSION = '1.2.8';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
