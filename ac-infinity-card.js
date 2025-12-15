@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.12';
+const VERSION = '1.2.13';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -123,11 +123,16 @@ class ACInfinityCard extends LitElement {
     if (acInfinityEntities.length > 0) {
       console.log('%c[AC Infinity Card] Entity Structure Analysis', 'color: #2196F3; font-weight: bold');
       
+      // Check if entity registry is available
+      console.log('Entity registry available:', !!this._hass.entities);
+      console.log('Sample entity registry entry:', this._hass.entities?.[acInfinityEntities[0]]);
+      
       // Group by device_id to see the structure
       const byDevice = {};
       acInfinityEntities.forEach(entity => {
         const state = this._hass.states[entity];
-        const deviceId = state?.attributes?.device_id || 'no_device_id';
+        const entityEntry = this._hass.entities?.[entity];
+        const deviceId = entityEntry?.device_id || state?.attributes?.device_id || 'no_device_id';
         if (!byDevice[deviceId]) {
           byDevice[deviceId] = [];
         }
@@ -136,7 +141,9 @@ class ACInfinityCard extends LitElement {
           friendly_name: state?.attributes?.friendly_name,
           domain: entity.split('.')[0],
           device_class: state?.attributes?.device_class,
-          unit: state?.attributes?.unit_of_measurement
+          unit: state?.attributes?.unit_of_measurement,
+          device_id: entityEntry?.device_id,
+          has_entity_entry: !!entityEntry
         });
       });
       
@@ -159,9 +166,11 @@ class ACInfinityCard extends LitElement {
       let controllerName = this.config.title || 'AC Infinity';
       let deviceId;
       
-      // CRITICAL: Use device_id from entity attributes if available - this is the most reliable grouping
-      if (state.attributes?.device_id) {
-        deviceId = state.attributes.device_id;
+      // CRITICAL: Use device_id from entity registry if available - this is the most reliable grouping
+      // Note: device_id is NOT in state.attributes, it's in the entity registry
+      const entityEntry = this._hass.entities?.[entity];
+      if (entityEntry?.device_id) {
+        deviceId = entityEntry.device_id;
         console.log(`[Device Detection] ${entity}: Using device_id="${deviceId}"`);
         // Still try to extract a nice display name
         if (friendlyName) {

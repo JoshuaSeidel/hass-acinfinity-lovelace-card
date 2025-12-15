@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.13] - 2024-12-15
+
+### Fixed - Device ID Detection from Entity Registry
+
+**Critical fix for device grouping:**
+
+- **Fixed device_id extraction**: Now correctly reads `device_id` from entity registry (`this._hass.entities[entity].device_id`) instead of incorrectly looking for it in state attributes (`state.attributes.device_id`)
+  - `device_id` is NOT stored in `state.attributes` - it's only available in the entity registry
+  - This fix ensures entities are properly grouped by their actual device instead of all being grouped as 'default' or 'no_device_id'
+  
+- **Added debugging for entity registry**:
+  - Logs whether entity registry is available
+  - Shows sample entity registry entries
+  - Displays `device_id` and `has_entity_entry` status for each entity in debug output
+  
+**This fixes:**
+- ✅ All entities being grouped under 'default' or 'no_device_id' 
+- ✅ Multiple controllers/devices not being separated correctly
+- ✅ Port entities not being associated with their parent device
+
+**How it works:**
+- Integration sets `device_info` on entities which registers them with a device in Home Assistant's device registry
+- Entity registry then links each entity to its device via `device_id`
+- Card now correctly accesses this `device_id` from the entity registry, not from state attributes
+
 ## [1.2.12] - 2024-12-15
 
 ### Fixed - Entity Grouping and Device Detection
