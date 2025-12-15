@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.4';
+const VERSION = '1.2.5';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -79,44 +79,16 @@ class ACInfinityCard extends LitElement {
     console.log('%c[AC Infinity Card] Entity Detection', 'color: #4CAF50; font-weight: bold');
     console.log(`Scanning ${entities.length} total entities...`);
 
-    // Find ALL AC Infinity entities using entity registry lookup
-    // The entity registry tracks which integration owns each entity
+    // Find ALL AC Infinity entities using entity registry lookup ONLY
+    // This matches EXACTLY what integration_entities('ac_infinity') does in templates
     let acInfinityEntities = entities.filter(entity => {
-      const state = this._hass.states[entity];
-      if (!state) return false;
-
-      // Method 1: Check entity registry (most reliable - this is what integration_entities() uses)
+      // ONLY use entity registry - this is the source of truth
+      // The entity registry tracks which integration owns each entity
       const entityEntry = this._hass.entities?.[entity];
-      if (entityEntry?.platform === 'ac_infinity' || entityEntry?.integration === 'ac_infinity') {
-        return true;
-      }
-
-      // Method 2: Check state attributes for integration
-      const integration = state.attributes?.integration;
-      if (integration === 'ac_infinity') {
-        return true;
-      }
-
-      // Method 3: Check for STRICT AC Infinity entity_id patterns
-      // ONLY match entities that are CLEARLY from AC Infinity integration
-      const entityLower = entity.toLowerCase();
-      const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
       
-      // Very specific AC Infinity patterns - must start with known prefixes
-      const strictAcInfinityPatterns = [
-        // Figs controller entities (your main controller)
-        /^(sensor|binary_sensor|switch|number|select)\.figs_/,
-        // Fig power strip entities
-        /^(sensor|binary_sensor|switch)\.fig_power_strip_/,
-        // Orchard sensor entities (but NOT input_number helpers!)
-        /^sensor\.(orchard|middle_orchard|fig_tree).*_(soil_moisture|temperature|humidity)/
-      ];
-      
-      if (strictAcInfinityPatterns.some(pattern => pattern.test(entityLower))) {
-        return true;
-      }
-
-      return false;
+      // Check if this entity belongs to the ac_infinity integration
+      // This is EXACTLY what integration_entities() template function uses
+      return entityEntry?.platform === 'ac_infinity';
     });
 
     console.log(`%c[AC Infinity Card] Found ${acInfinityEntities.length} AC Infinity entities`, 
