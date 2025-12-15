@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.17';
+const VERSION = '1.2.18';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -760,6 +760,9 @@ class ACInfinityCard extends LitElement {
                                    controller.probe_humidity ||
                                    controller.controller_humidity;
     
+    console.log('Has environmental sensors:', hasEnvironmentalSensors);
+    console.log('Device type:', controller.device_type, 'Is outlet:', isOutlet);
+    
     // Build ports/outlets array (always show 8 items)
     const ports = [];
     const defaultName = isOutlet ? 'Outlet' : 'Port';
@@ -774,13 +777,17 @@ class ACInfinityCard extends LitElement {
       });
     }
     
-    console.log(`Ports for display (${ports.length}):`, ports.map(p => ({
-      num: p.number,
+    console.log(`%c[AC Infinity Card] Ports for display (${ports.length}):`, 'color: #9C27B0; font-weight: bold');
+    console.table(ports.map(p => ({
+      port: p.number,
       name: p.name,
       hasStatus: !!p.status,
       hasState: !!p.state,
       hasPower: !!p.power,
-      hasDeviceType: !!p.device_type
+      hasDeviceType: !!p.device_type,
+      status_entity: p.status || 'none',
+      state_entity: p.state || 'none',
+      power_entity: p.power || 'none'
     })));
 
     return html`
@@ -1023,6 +1030,11 @@ class ACInfinityCard extends LitElement {
         </div>
       </ha-card>
     `;
+  }
+  
+  updated(changedProperties) {
+    super.updated(changedProperties);
+    console.log('%c[AC Infinity Card] Render completed successfully!', 'color: #4CAF50; font-weight: bold');
   }
 
   static get styles() {
