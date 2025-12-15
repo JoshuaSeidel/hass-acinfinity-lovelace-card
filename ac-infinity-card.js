@@ -201,36 +201,39 @@ class ACInfinityCard extends LitElement {
                  && !entityName.includes('port')) {
         controllers[deviceId].controller_vpd = entity;
       }
+
+      // Specialty sensors - check independently (not else-if) to avoid conflicts
       // Moisture sensors
-      else if (entityName.includes('moisture') || entityName.includes('soil') ||
-               friendlyNameLower.includes('moisture') || friendlyNameLower.includes('soil')) {
+      if ((entityName.includes('moisture') || entityName.includes('soil') ||
+           friendlyNameLower.includes('moisture') || friendlyNameLower.includes('soil'))
+          && !entityName.includes('port')) {
         controllers[deviceId].moisture = entity;
       }
       // CO2 sensors
-      else if (entityName.includes('co2') || entityName.includes('carbon_dioxide') ||
-               friendlyNameLower.includes('co2') || friendlyNameLower.includes('carbon dioxide')) {
+      if ((entityName.includes('co2') || entityName.includes('carbon_dioxide') ||
+           friendlyNameLower.includes('co2') || friendlyNameLower.includes('carbon dioxide'))
+          && !entityName.includes('port')) {
         controllers[deviceId].co2 = entity;
       }
       // UV sensors
-      else if (entityName.includes('uv_') || entityName.includes('_uv') || entityName.includes('ultraviolet') ||
-               friendlyNameLower.includes('uv') || friendlyNameLower.includes('ultraviolet')) {
+      if ((entityName.includes('uv') || entityName.includes('ultraviolet') ||
+           friendlyNameLower.includes('uv') || friendlyNameLower.includes('ultraviolet'))
+          && !entityName.includes('port')) {
         controllers[deviceId].uv = entity;
       }
-      // Check for port entities (v1.2.2+ has port_number sensor)
+      // Check for port entities
+      // First pass: detect port_number entities (v1.2.2+)
       if (entityName.includes('port_number')) {
-        // This entity tells us the port number for this device
         const portNum = parseInt(this._hass.states[entity]?.state);
         if (!isNaN(portNum)) {
-          // Extract the device name from friendly name (everything before "Port Number")
           const portNamePrefix = friendlyName.split(' Port Number')[0] || `Port ${portNum}`;
-          
-          // Find or create port object
+
           let portObj = controllers[deviceId].ports.find(p => p.number === portNum);
           if (!portObj) {
             portObj = {
               number: portNum,
               name: portNamePrefix,
-              namePrefix: portNamePrefix.toLowerCase(), // Store lowercase for matching
+              namePrefix: portNamePrefix.toLowerCase(),
               state: null,
               power: null,
               mode: null,
@@ -242,10 +245,56 @@ class ACInfinityCard extends LitElement {
           }
         }
       }
-      
-      // Check for other port-related entities and associate them with the right port
-      // Try matching by device_id first (if available), then by name prefix
+
+      // Second pass: detect port entities by pattern matching (for systems without port_number)
+      // Look for entities with "port" in their name/friendly_name
+      const portMatch = entityName.match(/port[\s_]*(\d+)/i) || friendlyNameLower.match(/port[\s_]*(\d+)/i);
+      if (portMatch && !entityName.includes('port_number')) {
+        const portNum = parseInt(portMatch[1]);
+        if (!isNaN(portNum) && portNum >= 1 && portNum <= 8) {
+          let portObj = controllers[deviceId].ports.find(p => p.number === portNum);
+          if (!portObj) {
+            // Extract port name from friendly name
+            const portNamePrefix = friendlyName.split(/port[\s_]*\d+/i)[0]?.trim() || `Port ${portNum}`;
+
+            portObj = {
+              number: portNum,
+              name: portNamePrefix,
+              namePrefix: portNamePrefix.toLowerCase(),
+              state: null,
+              power: null,
+              mode: null,
+              status: null,
+              device_type: null,
+              port_device_id: state.attributes?.device_id
+            };
+            controllers[deviceId].ports.push(portObj);
+          }
+
+          // Assign this entity to the port based on its type
+          if (entityName.includes('port_status') || entityName.includes('status')) {
+            portObj.status = entity;
+          } else if (entityName.includes('device_type')) {
+            portObj.device_type = entity;
+          } else if (entityName.includes('current_power') || (state.entity_id.startsWith('sensor.') && entityName.includes('power'))) {
+            portObj.power = entity;
+          } else if (state.entity_id.startsWith('switch.')) {
+            portObj.state = entity;
+          } else if (state.entity_id.startsWith('number.') && (entityName.includes('power') || entityName.includes('speed'))) {
+            portObj.power = entity;
+          } else if (entityName.includes('mode') || state.entity_id.startsWith('select.')) {
+            portObj.mode = entity;
+          }
+        }
+      }
+
+      // Third pass: for port_number entities, associate other entities by matching device_id or name prefix
       for (const portObj of controllers[deviceId].ports) {
+        // Skip if this entity was already assigned in the second pass
+        if (portMatch && parseInt(portMatch[1]) === portObj.number) {
+          continue;
+        }
+
         // Match by device_id if available
         if (state.attributes?.device_id && portObj.port_device_id === state.attributes.device_id) {
           if (entityName.includes('port_status') || entityName.includes('status')) {
@@ -696,7 +745,7 @@ class ACInfinityCard extends LitElement {
           <!-- BOTTOM BAR: Brand -->
           <div class="bottom-bar">
             <span class="brand">AC INFINITY</span>
-            <span class="version">v1.1.0</span>
+            <span class="version">v1.1.1</span>
           </div>
         </div>
       </ha-card>
@@ -1497,7 +1546,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c AC-INFINITY-CARD %c Version 1.1.0 ',
+  '%c AC-INFINITY-CARD %c Version 1.1.1 ',
   'color: white; background: #000; font-weight: bold;',
   'color: white; background: #4CAF50; font-weight: bold;'
 );
