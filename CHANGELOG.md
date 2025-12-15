@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.7] - 2024-12-15
+
+### Fixed - Compatibility with Integration v1.2.5 🎯
+
+**REQUIRES AC Infinity Integration v1.2.5 or higher!**
+
+This release updates the card to work with the fixed device association in the AC Infinity integration v1.2.5.
+
+**What Changed in the Card:**
+```javascript
+// OLD (v1.2.6 and earlier) - Looked in wrong place
+const deviceId = state.attributes?.device_id || 'fallback';
+
+// NEW (v1.2.7) - Uses entity registry (where integration now stores it)
+const entityEntry = this._hass.entities?.[entity];
+const deviceId = entityEntry?.device_id || 'fallback';
+```
+
+**What Changed in the Integration (v1.2.5):**
+- Set `_attr_device_info` in all entity subclasses
+- Entities now properly associate with their devices in the entity registry
+- Fixed the root cause: `device_id` is now properly registered
+
+**This fixes:**
+- ✅ Entities grouped by actual physical device (not `no_device_id`)
+- ✅ Controller card shows only controller entities
+- ✅ Outlet card shows only outlet entities  
+- ✅ Multiple controllers properly separated
+- ✅ Port/outlet status correctly displayed
+
+**Upgrade Instructions:**
+1. **Update AC Infinity Integration to v1.2.5 first** (critical!)
+2. **Restart Home Assistant** to re-associate entities with devices
+3. Update this card to v1.2.7
+4. Hard refresh browser (Cmd+Shift+R or Ctrl+Shift+F5)
+
+**Compatibility:**
+- ✅ Works with AC Infinity Integration v1.2.5+
+- ⚠️ Will fall back to name-based grouping on older integration versions
+
 ## [1.2.5] - 2024-12-15
 
 ### Fixed - SIMPLIFIED: Entity Registry Only! 🎯
