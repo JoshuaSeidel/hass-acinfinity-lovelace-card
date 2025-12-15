@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.10';
+const VERSION = '1.2.12';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -127,9 +127,7 @@ class ACInfinityCard extends LitElement {
       const byDevice = {};
       acInfinityEntities.forEach(entity => {
         const state = this._hass.states[entity];
-        const entityEntry = this._hass.entities?.[entity];
-        // CRITICAL: Use entity REGISTRY's device_id (integration v1.2.5 populates this)
-        const deviceId = entityEntry?.device_id || 'no_device_id';
+        const deviceId = state?.attributes?.device_id || 'no_device_id';
         if (!byDevice[deviceId]) {
           byDevice[deviceId] = [];
         }
@@ -157,30 +155,79 @@ class ACInfinityCard extends LitElement {
       
       const friendlyName = state.attributes?.friendly_name || '';
       
-      // Extract controller name from friendly name (e.g., "Grow Tent Temperature" -> "Grow Tent")
-      // Look for common patterns in AC Infinity entity names
+      // Extract controller/device name from friendly name
       let controllerName = this.config.title || 'AC Infinity';
-      if (friendlyName) {
-        // Remove common suffixes to get the device name
-        const suffixPatterns = [
-          / (Temperature|Humidity|VPD|Port \d+.*|Outlet \d+.*|Tent.*|Controller.*|Built-in.*|Current Power|Port Status|Device Type|Mode)$/i,
-          / (Probe|Sensor)$/i
-        ];
-        
-        let extractedName = friendlyName;
-        for (const pattern of suffixPatterns) {
-          extractedName = extractedName.replace(pattern, '').trim();
+      let deviceId;
+      
+      // CRITICAL: Use device_id from entity attributes if available - this is the most reliable grouping
+      if (state.attributes?.device_id) {
+        deviceId = state.attributes.device_id;
+        console.log(`[Device Detection] ${entity}: Using device_id="${deviceId}"`);
+        // Still try to extract a nice display name
+        if (friendlyName) {
+          const suffixPatterns = [
+            / (Temperature|Humidity|VPD|Status|State|Current Power|Port Status|Device Type|Mode|Port \d+|Outlet \d+)$/i,
+            / (Probe|Sensor|Built-in)$/i
+          ];
+          
+          let extractedName = friendlyName;
+          for (const pattern of suffixPatterns) {
+            extractedName = extractedName.replace(pattern, '').trim();
+          }
+          
+          if (extractedName && extractedName.length > 0) {
+            controllerName = extractedName;
+          }
         }
+      } else {
+        // FALLBACK: No device_id, so we need to extract from entity_id or friendly_name
+        // For entities like "binary_sensor.fig_power_strip_outlet_1_status"
+        // We want to group by the base device name (e.g., "fig_power_strip")
         
-        if (extractedName && extractedName.length > 0) {
-          controllerName = extractedName;
+        // Try to extract from entity_id first (more reliable than friendly name)
+        const entityIdParts = entity.split('.');
+        if (entityIdParts.length === 2) {
+          const entityName = entityIdParts[1];
+          // Remove port/outlet numbers and ALL suffixes to get base device name
+          let baseName = entityName
+            .replace(/_(?:port|outlet)_\d+.*$/i, '')  // Remove "_outlet_1_status" etc
+            .replace(/_(?:none|port|outlet)_\d+$/i, '')  // Remove "_none_3" pattern
+            .replace(/_(?:status|state|power|mode|temperature|humidity|vpd|current_power|device_type|port_status|connected_device_type|remaining_time|next_state_change)$/i, ''); // Remove common suffixes
+          
+          // Clean up any trailing underscores or "none"
+          baseName = baseName.replace(/_none$/i, '').replace(/_+$/, '');
+          
+          if (baseName) {
+            deviceId = `extracted_${baseName}`;
+            controllerName = baseName.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            console.log(`[Device Detection] ${entity}: Extracted baseName="${baseName}", deviceId="${deviceId}", displayName="${controllerName}"`);
+          } else {
+            // Really couldn't extract anything meaningful
+            deviceId = `fallback_${entity}`;
+            controllerName = friendlyName || 'Unknown Device';
+            console.warn(`[Device Detection] ${entity}: Could not extract base name, using fallback`);
+          }
+        } else {
+          // Last resort: use friendly name
+          const suffixPatterns = [
+            / (Temperature|Humidity|VPD|Status|State|Current Power|Port Status|Device Type|Mode)$/i,
+            / Port \d+.*/i,
+            / Outlet \d+.*/i,
+            / (Probe|Sensor|Built-in)$/i
+          ];
+          
+          let extractedName = friendlyName;
+          for (const pattern of suffixPatterns) {
+            extractedName = extractedName.replace(pattern, '').trim();
+          }
+          
+          if (extractedName && extractedName.length > 0) {
+            controllerName = extractedName;
+          }
+          deviceId = `name_${controllerName.toLowerCase().replace(/\s+/g, '_')}`;
+          console.log(`[Device Detection] ${entity}: Using friendly name extraction, deviceId="${deviceId}"`);
         }
       }
-      
-      // CRITICAL: Use entity REGISTRY's device_id (integration v1.2.5 populates this)
-      // This ensures entities from the same controller are grouped together
-      const entityEntry = this._hass.entities?.[entity];
-      const deviceId = entityEntry?.device_id || `name_${controllerName.toLowerCase().replace(/\s+/g, '_')}`;
 
       if (!controllers[deviceId]) {
         controllers[deviceId] = {
