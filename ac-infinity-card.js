@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.21';
+const VERSION = '1.2.22';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -421,18 +421,25 @@ class ACInfinityCard extends LitElement {
               console.log(`  ✓ Assigned as POWER`);
             }
           }
-          // Switch entities (port on/off control)
+          // Switch entities (port/outlet on/off control)
           if (entityType === 'switch' && !entityName.includes('status')) {
             if (!portObj.state) {
               portObj.state = entity;
               console.log(`  ✓ Assigned as STATE (switch)`);
             }
           }
-          // Binary sensor _state entities (port state indicator)
+          // Binary sensor _state entities (port/outlet state indicator)
           if (entityType === 'binary_sensor' && entityName.includes('_state') && !entityName.includes('status')) {
             if (!portObj.state) {
               portObj.state = entity;
               console.log(`  ✓ Assigned as STATE (binary_sensor)`);
+            }
+          }
+          // Light entities (some outlets may be exposed as lights)
+          if (entityType === 'light') {
+            if (!portObj.state) {
+              portObj.state = entity;
+              console.log(`  ✓ Assigned as STATE (light)`);
             }
           }
           // Number entities (power settings)
@@ -883,25 +890,49 @@ class ACInfinityCard extends LitElement {
                     
                     const isOn = status === 'Active' || state === 'on' || (power && power !== '0' && power !== 'off' && power !== 'unavailable' && power !== 'unknown' && power !== 'N/A');
                     
-                    // Use device type for name if available
-                    let portName = port.name;
-                    if (deviceType && deviceType !== 'N/A' && deviceType !== 'unavailable' && deviceType !== 'No Device Type') {
+                    // Determine port/outlet name
+                    let portName = port.name; // Default: "Port 1" or "Outlet 1"
+                    
+                    // For controllers with ports: Use device type name if available
+                    if (!isOutlet && deviceType && deviceType !== 'N/A' && deviceType !== 'unavailable' && deviceType !== 'unknown' && deviceType !== 'No Device Type' && deviceType !== 'None') {
                       portName = deviceType;
                     }
+                    // For outlets: Keep generic "Outlet X" name unless we have a custom name from entity
+                    // TODO: Could look at friendly_name if integration provides custom outlet names
                     
+                    // Determine display value
                     let displayValue;
-                    if (port.power && power !== 'N/A' && power !== 'unavailable' && power !== 'unknown') {
-                      displayValue = this._formatValue(power);
-                    } else if (status === 'Active') {
-                      displayValue = 'ON';
-                    } else if (status === 'Inactive') {
-                      displayValue = 'OFF';
-                    } else if (state === 'on') {
-                      displayValue = 'ON';
-                    } else if (state === 'off') {
-                      displayValue = 'OFF';
+                    if (isOutlet) {
+                      // Outlets: Always show ON/OFF
+                      if (isOn) {
+                        displayValue = 'ON';
+                      } else if (status === 'Inactive' || state === 'off' || power === '0' || power === 'off') {
+                        displayValue = 'OFF';
+                      } else {
+                        displayValue = '--';
+                      }
                     } else {
-                      displayValue = '--';
+                      // Controller ports: Show power level if available, otherwise ON/OFF
+                      if (port.power && power !== 'N/A' && power !== 'unavailable' && power !== 'unknown' && power !== 'off') {
+                        const powerNum = parseInt(power);
+                        if (!isNaN(powerNum) && powerNum > 0) {
+                          displayValue = this._formatValue(power);
+                        } else if (powerNum === 0) {
+                          displayValue = 'OFF';
+                        } else {
+                          displayValue = '--';
+                        }
+                      } else if (status === 'Active') {
+                        displayValue = 'ON';
+                      } else if (status === 'Inactive') {
+                        displayValue = 'OFF';
+                      } else if (state === 'on') {
+                        displayValue = 'ON';
+                      } else if (state === 'off') {
+                        displayValue = 'OFF';
+                      } else {
+                        displayValue = '--';
+                      }
                     }
                     
                     const iconColor = isOn ? '#4CAF50' : '#555';
