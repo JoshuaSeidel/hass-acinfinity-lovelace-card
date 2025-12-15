@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.1';
+const VERSION = '1.2.2';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -76,65 +76,67 @@ class ACInfinityCard extends LitElement {
 
     const entities = Object.keys(this._hass.states);
 
-    // Find ALL AC Infinity entities
-    // First, try to find entities with integration attribute (most reliable)
+    // Find ALL AC Infinity entities - ONLY use integration attribute for reliability
     let acInfinityEntities = entities.filter(entity => {
       const state = this._hass.states[entity];
       if (!state) return false;
 
-      // Check integration attribute first (most reliable method)
+      // ONLY check integration attribute - this is the most reliable method
+      // The AC Infinity integration properly sets this attribute on all its entities
       const integration = state.attributes?.integration;
-      if (integration === 'ac_infinity') {
-        return true;
-      }
-
-      const entityLower = entity.toLowerCase();
-      const friendlyName = (state.attributes?.friendly_name || '').toLowerCase();
-      
-      // Exclude obviously non-AC Infinity entities
-      const excludePatterns = ['import', 'export', 'billing', 'grid', 'utility_meter'];
-      if (excludePatterns.some(pattern => entityLower.includes(pattern) || friendlyName.includes(pattern))) {
-        return false;
-      }
-
-      // Check for AC Infinity specific patterns in entity IDs or friendly names
-      // These patterns are specific enough to identify AC Infinity devices
-      const acInfinityPatterns = [
-        // Temperature/Humidity/VPD sensors
-        'tent_temperature', 'tent_humidity', 'tent_vpd',
-        'probe_temperature', 'probe_humidity', 'probe_vpd',
-        'controller_temperature', 'controller_humidity', 'controller_vpd',
-        'built_in_temperature', 'built_in_humidity', 'built_in_vpd',
-        // Port-related entities (includes outlets)
-        'port_number', 'port_status', '_port_', 'port ',
-        'outlet_', '_outlet', 'outlet ',
-        'connected_device_type', 'device_type',
-        'current_power', 'at_power', 'off_power', 'on_power',
-        // AC Infinity specific sensors
-        'moisture', 'soil_moisture',
-        'co2', 'carbon_dioxide',
-        'uv_index', 'uv'
-      ];
-
-      // Check if entity matches any AC Infinity pattern
-      const matchesPattern = acInfinityPatterns.some(pattern => 
-        entityLower.includes(pattern) || friendlyName.includes(pattern.replace('_', ' '))
-      );
-
-      return matchesPattern;
+      return integration === 'ac_infinity';
     });
 
     console.log('%c[AC Infinity Card] Entity Detection', 'color: #4CAF50; font-weight: bold');
-    console.log(`Found ${acInfinityEntities.length} AC Infinity entities:`, acInfinityEntities);
+    console.log(`Found ${acInfinityEntities.length} AC Infinity entities (integration='ac_infinity'):`, acInfinityEntities);
+    
+    if (acInfinityEntities.length === 0) {
+      console.warn('%c[AC Infinity Card] No AC Infinity entities found!', 'color: #FF9800; font-weight: bold');
+      console.warn('Make sure:');
+      console.warn('1. AC Infinity integration is installed and configured');
+      console.warn('2. Your devices are showing in Settings → Devices & Services → AC Infinity');
+      console.warn('3. Entities have integration="ac_infinity" attribute');
+    }
     
     const portEntities = acInfinityEntities.filter(e => {
       const entityLower = e.toLowerCase();
       const friendlyName = (this._hass.states[e]?.attributes?.friendly_name || '').toLowerCase();
-      return entityLower.match(/port[\s_]*\d+/i) || friendlyName.match(/port[\s_]*\d+/i);
+      return entityLower.match(/(?:port|outlet)[\s_]*\d+/i) || 
+             friendlyName.match(/(?:port|outlet)[\s_]*\d+/i);
     });
-    console.log(`Found ${portEntities.length} port-related entities:`, portEntities);
+    console.log(`Found ${portEntities.length} port/outlet entities:`, portEntities);
 
     const controllers = {};
+    
+    // Log all AC Infinity entities grouped by device_id to understand structure
+    if (acInfinityEntities.length > 0) {
+      console.log('%c[AC Infinity Card] Entity Structure Analysis', 'color: #2196F3; font-weight: bold');
+      
+      // Group by device_id to see the structure
+      const byDevice = {};
+      acInfinityEntities.forEach(entity => {
+        const state = this._hass.states[entity];
+        const deviceId = state?.attributes?.device_id || 'no_device_id';
+        if (!byDevice[deviceId]) {
+          byDevice[deviceId] = [];
+        }
+        byDevice[deviceId].push({
+          entity_id: entity,
+          friendly_name: state?.attributes?.friendly_name,
+          domain: entity.split('.')[0],
+          device_class: state?.attributes?.device_class,
+          unit: state?.attributes?.unit_of_measurement
+        });
+      });
+      
+      console.log(`Found ${Object.keys(byDevice).length} unique device(s):`);
+      Object.entries(byDevice).forEach(([deviceId, entities]) => {
+        console.groupCollapsed(`Device: ${deviceId} (${entities.length} entities)`);
+        console.log('Sample friendly name:', entities[0]?.friendly_name);
+        console.log('All entities:', entities);
+        console.groupEnd();
+      });
+    }
     
     acInfinityEntities.forEach(entity => {
       const state = this._hass.states[entity];
@@ -148,7 +150,7 @@ class ACInfinityCard extends LitElement {
       if (friendlyName) {
         // Remove common suffixes to get the device name
         const suffixPatterns = [
-          / (Temperature|Humidity|VPD|Port \d+.*|Tent.*|Controller.*|Built-in.*|Current Power|Port Status|Device Type|Mode)$/i,
+          / (Temperature|Humidity|VPD|Port \d+.*|Outlet \d+.*|Tent.*|Controller.*|Built-in.*|Current Power|Port Status|Device Type|Mode)$/i,
           / (Probe|Sensor)$/i
         ];
         
@@ -187,28 +189,48 @@ class ACInfinityCard extends LitElement {
 
       const entityName = entity.toLowerCase();
       const friendlyNameLower = friendlyName.toLowerCase();
+      const deviceClass = state.attributes?.device_class;
+      const unitOfMeasurement = state.attributes?.unit_of_measurement;
       
+      // Detect temperature sensors (probe/tent sensors)
       if (entityName.includes('tent_temperature') || entityName.includes('probe_temperature') || 
-          friendlyNameLower.includes('tent temperature') || friendlyNameLower.includes('probe temperature')) {
+          entityName.includes('tent sensor') || entityName.includes('tent probe') ||
+          friendlyNameLower.includes('tent temperature') || friendlyNameLower.includes('probe temperature') ||
+          friendlyNameLower.includes('tent sensor') || friendlyNameLower.includes('tent probe') ||
+          (friendlyNameLower.includes('tent') && deviceClass === 'temperature')) {
         controllers[deviceId].probe_temperature = entity;
-      } else if (entityName.includes('tent_humidity') || entityName.includes('probe_humidity') || 
-                 friendlyNameLower.includes('tent humidity') || friendlyNameLower.includes('probe humidity')) {
+      } 
+      // Detect humidity sensors (probe/tent sensors)
+      else if (entityName.includes('tent_humidity') || entityName.includes('probe_humidity') || 
+               friendlyNameLower.includes('tent humidity') || friendlyNameLower.includes('probe humidity') ||
+               (friendlyNameLower.includes('tent') && deviceClass === 'humidity')) {
         controllers[deviceId].probe_humidity = entity;
-      } else if (entityName.includes('tent_vpd') || entityName.includes('probe_vpd') || 
-                 friendlyNameLower.includes('tent vpd') || friendlyNameLower.includes('probe vpd')) {
+      } 
+      // Detect VPD sensors (probe/tent sensors)
+      else if (entityName.includes('tent_vpd') || entityName.includes('probe_vpd') || 
+               friendlyNameLower.includes('tent vpd') || friendlyNameLower.includes('probe vpd') ||
+               (friendlyNameLower.includes('tent') && (entityName.includes('vpd') || friendlyNameLower.includes('vpd')))) {
         controllers[deviceId].probe_vpd = entity;
       }
+      // Detect controller/built-in temperature
       else if ((entityName.includes('built_in_temperature') || entityName.includes('controller_temperature') || 
-                friendlyNameLower.includes('built-in temperature') || friendlyNameLower.includes('controller temperature')) 
-               && !entityName.includes('port')) {
+                friendlyNameLower.includes('built-in temperature') || friendlyNameLower.includes('controller temperature') ||
+                (friendlyNameLower.includes('controller') && deviceClass === 'temperature'))
+               && !entityName.includes('port') && !friendlyNameLower.includes('port')) {
         controllers[deviceId].controller_temperature = entity;
-      } else if ((entityName.includes('built_in_humidity') || entityName.includes('controller_humidity') || 
-                  friendlyNameLower.includes('built-in humidity') || friendlyNameLower.includes('controller humidity')) 
-                 && !entityName.includes('port')) {
+      } 
+      // Detect controller/built-in humidity
+      else if ((entityName.includes('built_in_humidity') || entityName.includes('controller_humidity') || 
+                friendlyNameLower.includes('built-in humidity') || friendlyNameLower.includes('controller humidity') ||
+                (friendlyNameLower.includes('controller') && deviceClass === 'humidity'))
+                 && !entityName.includes('port') && !friendlyNameLower.includes('port')) {
         controllers[deviceId].controller_humidity = entity;
-      } else if ((entityName.includes('built_in_vpd') || entityName.includes('controller_vpd') ||
-                  friendlyNameLower.includes('built-in vpd') || friendlyNameLower.includes('controller vpd'))
-                 && !entityName.includes('port')) {
+      } 
+      // Detect controller/built-in VPD
+      else if ((entityName.includes('built_in_vpd') || entityName.includes('controller_vpd') ||
+                friendlyNameLower.includes('built-in vpd') || friendlyNameLower.includes('controller vpd') ||
+                (friendlyNameLower.includes('controller') && (entityName.includes('vpd') || friendlyNameLower.includes('vpd'))))
+                 && !entityName.includes('port') && !friendlyNameLower.includes('port')) {
         controllers[deviceId].controller_vpd = entity;
       }
 

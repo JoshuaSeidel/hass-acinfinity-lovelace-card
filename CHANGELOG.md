@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2024-12-15
+
+### Fixed - Strict Integration Filtering & Enhanced Debugging 🔍
+This release fixes entity detection to ONLY use the integration attribute and adds comprehensive debugging.
+
+**Entity Detection:**
+- ✅ **Strict integration filtering** - ONLY entities with `integration='ac_infinity'` attribute are detected
+- ✅ **Removed pattern matching** - No more false positives from non-AC Infinity entities
+- ✅ **Device class support** - Uses device_class attribute for temperature/humidity detection
+- ✅ **Better sensor patterns** - Added "tent sensor", "tent probe" patterns
+
+**Enhanced Debugging:**
+- 🔍 **Entity structure analysis** - Shows all entities grouped by device_id in console
+- 🔍 **Sample entity display** - Shows first entity's full structure
+- 🔍 **Per-device entity list** - Collapsible groups showing all entities per device
+- 🔍 **Attribute inspection** - Shows device_class, unit_of_measurement, domain for each entity
+
+**Sensor Detection Improvements:**
+- ✅ **Device class checking** - Uses `device_class='temperature'` and `device_class='humidity'`
+- ✅ **More flexible patterns** - Catches "Tent Sensor", "Tent Probe" in friendly names
+- ✅ **Better suffix removal** - Handles "Outlet X" in name extraction
+
+**What This Should Fix:**
+- ❌ Wrong entities being detected → ✅ Only AC Infinity entities with integration attribute
+- ❌ Ports/outlets not populated → ✅ Better debugging to identify structure issues
+- ❌ Sensors not detected → ✅ Device class and flexible pattern matching
+
+**Note**: This version focuses on debugging. Check browser console (F12) to see:
+- How many entities found
+- How they're grouped by device
+- What attributes they have
+
 ## [1.2.1] - 2024-12-15
 
 ### Fixed - Critical Multi-Device Fixes 🔧
