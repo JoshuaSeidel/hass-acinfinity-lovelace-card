@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.6] - 2024-12-15
+
+### Fixed - CRITICAL: Device ID Grouping Bug 🔧
+
+**The Problem:**
+All 480 AC Infinity entities were showing as `no_device_id`, creating 113 separate "devices" (one per entity's friendly name).
+- Controller entities showing on outlet card
+- Outlet entities not showing on outlet card  
+- Each entity treated as its own "device"
+- No proper grouping by physical hardware
+
+**The Root Cause:**
+```javascript
+// WRONG - AC Infinity doesn't store device_id in state attributes
+const deviceId = state.attributes?.device_id || 'fallback';
+
+// CORRECT - device_id is in the entity registry
+const deviceId = this._hass.entities[entity].device_id || 'fallback';
+```
+
+**What Changed:**
+- ✅ Now uses entity **registry's** `device_id` (not state attributes)
+- ✅ Entities from same physical device are properly grouped
+- ✅ Multiple controllers are correctly separated
+- ✅ Controller card shows only controller data
+- ✅ Outlet card shows only outlet data
+
+**Affected Code:**
+- Entity structure analysis logging (line 130)
+- Main device grouping logic (line 180)
+
 ## [1.2.5] - 2024-12-15
 
 ### Fixed - SIMPLIFIED: Entity Registry Only! 🎯
