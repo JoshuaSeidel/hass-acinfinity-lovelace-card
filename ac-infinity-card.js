@@ -5,7 +5,7 @@ import {
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
 // VERSION constant for cache busting and version tracking
-const VERSION = '1.2.23';
+const VERSION = '1.2.24';
 
 class ACInfinityCard extends LitElement {
   static get properties() {
@@ -906,12 +906,28 @@ class ACInfinityCard extends LitElement {
                     // Determine port/outlet name
                     let portName = port.name; // Default: "Port 1" or "Outlet 1"
                     
-                    // For controllers with ports: Use device type name if available
-                    if (!isOutlet && deviceType && deviceType !== 'N/A' && deviceType !== 'unavailable' && deviceType !== 'unknown' && deviceType !== 'No Device Type' && deviceType !== 'None') {
+                    // Try to get custom device name from entity friendly_name
+                    // The integration sets friendly names like "Humidifier Status" or "Grow Light Current Power"
+                    // We want to extract the device name part
+                    if (port.status || port.state || port.power) {
+                      const entityId = port.status || port.state || port.power;
+                      const entityState = this._hass.states[entityId];
+                      if (entityState && entityState.attributes && entityState.attributes.friendly_name) {
+                        const friendlyName = entityState.attributes.friendly_name;
+                        // Remove common suffixes to get device name
+                        const cleanName = friendlyName
+                          .replace(/ (Status|State|Current Power|Power|Mode|Port \d+.*|Outlet \d+.*)$/i, '')
+                          .trim();
+                        if (cleanName && cleanName.length > 0 && !cleanName.match(/^(Port|Outlet) \d+$/i)) {
+                          portName = cleanName;
+                        }
+                      }
+                    }
+                    
+                    // Fallback: For controllers with ports, use device type name if available and no custom name found
+                    if (!isOutlet && portName === port.name && deviceType && deviceType !== 'N/A' && deviceType !== 'unavailable' && deviceType !== 'unknown' && deviceType !== 'No Device Type' && deviceType !== 'None') {
                       portName = deviceType;
                     }
-                    // For outlets: Keep generic "Outlet X" name unless we have a custom name from entity
-                    // TODO: Could look at friendly_name if integration provides custom outlet names
                     
                     // Determine display value
                     let displayValue;
