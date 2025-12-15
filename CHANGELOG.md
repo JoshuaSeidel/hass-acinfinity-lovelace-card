@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.12] - 2024-12-15
+
+### Fixed - Entity Grouping and Device Detection
+
+**Critical fixes for cards showing dashes (--) instead of sensor values:**
+
+- **Fixed entity grouping logic**: Now properly extracts base device name from entity_id instead of relying on friendly name patterns
+  - Example: `binary_sensor.fig_power_strip_outlet_1_status` → groups under `fig_power_strip` device
+  - Prevents separate outlets/ports from being merged into single device
+  
+- **Added multiple fallback detection methods**: 
+  - Primary: Entity registry platform check (`entityEntry?.platform === 'ac_infinity'`)
+  - Fallback 1: Attribution attribute check
+  - Fallback 2: Entity ID pattern matching (`ac_infinity`, `acinfinity`)
+  - Fallback 3: Friendly name pattern matching (`Fig Power`, `Figs`, port/outlet patterns)
+  
+- **Improved device name extraction**:
+  - Handles entities without `device_id` attributes
+  - Better regex patterns for removing suffixes (`_none_3`, `_outlet_1_status`, etc.)
+  - Prevents creating duplicate devices from status entities
+  
+- **Enhanced debug logging**:
+  - Shows device detection decisions for each entity
+  - Logs extracted base names and device IDs
+  - Helps troubleshoot grouping issues
+
+**This fixes:**
+- ✅ Cards showing all dashes instead of actual sensor readings
+- ✅ Multiple outlet/port devices being merged incorrectly
+- ✅ Entity detection when entity registry is incomplete
+- ✅ Device grouping for entities without device_id attributes
+
 ## [1.2.10] - 2024-12-15
 
 ### Fixed - CRITICAL: Use Entity Registry device_id (Fixes v1.2.8/v1.2.9 Issues)
